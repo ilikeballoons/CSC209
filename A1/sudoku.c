@@ -17,7 +17,7 @@ int main() {
     int row8[9] = {6, 7, 8 ,9, 1, 2, 3, 4, 5};
     int row9[9] = {2, 3, 4, 5, 6, 7, 8, 9, 1};
 
-    // // This puzzle is correct
+    // This puzzle is correct
     // int row1[9] = {2, 9, 5, 7, 4, 3, 8, 6, 1};
     // int row2[9] = {4, 3, 1, 8, 6, 5, 9, 2, 7};
     // int row3[9] = {8, 7, 6, 1, 9, 2, 5, 4, 3};

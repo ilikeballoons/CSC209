@@ -6,6 +6,16 @@
  * n^2 integers are unique, otherwise return 1.
  */
 int check_group(int **elements, int n) {
+  // for (int i = 0; i < n; i++) {
+  //   //for each array
+  //   for (int j = 0; j < n; j++) {
+  //     //for each integer in each array
+  //     int current_number = elements[i][j];
+  //
+  //   }
+  // }
+
+
    int is_all_unique[n*n];
    for (int i = 0; i < n*n; i++) {
      is_all_unique[i] = 0; // initialize the array with 0s
@@ -35,7 +45,7 @@ int check_group(int **elements, int n) {
 * This method takes a sudoku puzzle, which is a collection of rows,
 * and converts it into a collection of columns
 */
-int *build_columns (int **puzzle) {
+int **build_columns (int **puzzle) {
   int col1[9] = {};
   int col2[9] = {};
   int col3[9] = {};
@@ -48,19 +58,19 @@ int *build_columns (int **puzzle) {
 
   int *columns[9] = {col1, col2, col3, col4, col5, col6, col7, col8, col9};
 
-  for (int i = 0; i < 9; i++) {
-    for (int j = 0; i < 9; j++) {
+  for (int row = 0; row < 9; row++) {
+    for (int col = 0; col < 9; col++) {
       // take the value of puzzle[j][i] and append it to columns[i][j]
-      columns[i][j] = puzzle[j][i];
+      columns[row][col] = puzzle[col][row];
     }
   }
-  return *columns;
+  return &columns;
 }
 
 /*
 * This method takes a collection of rows and converts it into a collection of boxes
 */
-int *build_boxes (int **puzzle) {
+int **build_boxes (int **puzzle) {
   int puzzle_1d[81];
   int boxes_1d[81];
   int counter = 0;
@@ -94,7 +104,16 @@ int *build_boxes (int **puzzle) {
     }
   }
 
-  return *boxes;
+  return &boxes;
+}
+
+int *build_2d_array(int **group) {
+  int row1[3] = { *group[0], *group[1], *group[2] };
+  int row2[3] = { *group[3], *group[4], *group[5] };
+  int row3[3] = { *group[6], *group[7], *group[8] };
+  int *array[3] = { row1, row2, row3 };
+
+  return &array;
 }
 
 /* puzzle is a 9x9 sudoku, represented as a 1D array of 9 pointers
@@ -105,20 +124,29 @@ int *build_boxes (int **puzzle) {
 */
 int check_regular_sudoku(int **puzzle) {
   int error_flag = 0;
-  error_flag = check_group(puzzle, 3);
-  if (error_flag == 1) {
-    return 1;
+  //error_flag = check_group(puzzle); //todo: check each ROW not the whole puzzle
+  for (int row = 0; row < 9; row++) {
+    //build the 2d array and pass it in to check_group
+    error_flag = check_group(build_2d_array(puzzle[row]), 3);
+    if (error_flag == 1) {
+      return 1;
+    }
   }
+
   int *columns = build_columns(puzzle);
-  error_flag = check_group(&columns, 3);
-  if (error_flag == 1) {
-    return 1;
+  for (int col = 0;  col < 9; col++) {
+    error_flag = check_group(build_2d_array(columns[col]), 3);
+    if (error_flag == 1) {
+      return 1;
+    }
   }
 
   int *boxes = build_boxes(puzzle);
-  error_flag = check_group(&boxes, 3);
-  if (error_flag == 1) {
-    return 1;
+  for (int box = 0; box < 9; box++) {
+    error_flag = check_group(build_2d_array(boxes[box]), 3);
+    if (error_flag == 1) {
+      return 1;
+    }
   }
   return 0;
 }
