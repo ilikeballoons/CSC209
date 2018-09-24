@@ -61,7 +61,7 @@ void build_columns (int **puzzle, int **columns) {
   for (int row = 0; row < 9; row++) {
     for (int col = 0; col < 9; col++) {
       // take the value of puzzle[j][i] and append it to columns[i][j]
-      columns[row][col] = puzzle[col][row];
+      columns[row][col] = puzzle[col][row]; //segmentation fault
     }
   }
   // return columns;
@@ -128,14 +128,14 @@ void build_2d_array(int **group, int **array_2d) {
 int check_regular_sudoku(int **puzzle) {
   int error_flag = 0;
   int *array_2d[3][3];
-  for (int row = 0; row < 9; row++) {
-    //build the 2d array and pass it in to check_group
-    build_2d_array(&puzzle[row], *array_2d);
-    error_flag = check_group(*array_2d, 3);
-    if (error_flag == 1) {
-      return 1;
-    }
-  }
+  // for (int row = 0; row < 9; row++) {
+  //   //build the 2d array and pass it in to check_group
+  //   build_2d_array(&puzzle[row], *array_2d);
+  //   error_flag = check_group(*array_2d, 3);
+  //   if (error_flag == 1) {
+  //     return 1;
+  //   }
+  // }
 
   int *columns[9][9];
   build_columns(puzzle, *columns);
