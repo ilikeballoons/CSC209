@@ -108,9 +108,15 @@ void build_boxes (int **puzzle, int **boxes) {
 }
 
 void build_2d_array(int **group, int **array_2d) {
-  array_2d = {{ *group[0], *group[1], *group[2] },
-               { *group[3], *group[4], *group[5] },
-               { *group[6], *group[7], *group[8] }};
+  array_2d[0][0] = *group[0];
+  array_2d[0][1] = *group[1];
+  array_2d[0][2] = *group[2];
+  array_2d[1][0] = *group[3];
+  array_2d[1][1] = *group[4];
+  array_2d[1][2] = *group[5];
+  array_2d[2][0] = *group[6];
+  array_2d[2][1] = *group[7];
+  array_2d[2][2] = *group[8];
 }
 
 /* puzzle is a 9x9 sudoku, represented as a 1D array of 9 pointers
@@ -122,31 +128,30 @@ void build_2d_array(int **group, int **array_2d) {
 int check_regular_sudoku(int **puzzle) {
   int error_flag = 0;
   int *array_2d[3][3];
-  //error_flag = check_group(puzzle); //todo: check each ROW not the whole puzzle
   for (int row = 0; row < 9; row++) {
     //build the 2d array and pass it in to check_group
-    build_2d_array(puzzle[row], array_2d);
-    error_flag = check_group(array_2d, 3);
+    build_2d_array(&puzzle[row], *array_2d);
+    error_flag = check_group(*array_2d, 3);
     if (error_flag == 1) {
       return 1;
     }
   }
 
   int *columns[9][9];
-  build_columns(puzzle, columns);
+  build_columns(puzzle, *columns);
   for (int col = 0;  col < 9; col++) {
-    build_2d_array(columns[col], array_2d);
-    error_flag = check_group(array_2d, 3);
+    build_2d_array(columns[col], *array_2d);
+    error_flag = check_group(*array_2d, 3);
     if (error_flag == 1) {
       return 1;
     }
   }
 
   int *boxes[9][9];
-  build_boxes(puzzle, boxes);
+  build_boxes(puzzle, *boxes);
   for (int box = 0; box < 9; box++) {
-    build_2d_array(boxes[box], array_2d);
-    error_flag = check_group(array_2d, 3);
+    build_2d_array(boxes[box], *array_2d);
+    error_flag = check_group(*array_2d, 3);
     if (error_flag == 1) {
       return 1;
     }
