@@ -7,7 +7,7 @@
 
 void read_lines() {
   int greatest_pid_num = 1;
-  char greatest_uid[MAX_UID_SIZE];
+  char greatest_uid[MAX_UID_SIZE] = "NO UID";
 
   int current_pid_num = 1;
   char current_uid[MAX_UID_SIZE];
@@ -30,13 +30,15 @@ void read_lines() {
       current_pid_num = 1;
     }
   }
-  printf("%s %d\n", greatest_uid, greatest_pid_num);
+  if(strcmp(greatest_uid, "NO UID") != 0) {
+    printf("%s %d\n", greatest_uid, greatest_pid_num);
+  }
 }
 
 void read_lines_ppid(int user_ppid) {
-  int greatest_pid_num = 1; //TODO: what if the ppid is not present?
-  char greatest_uid[MAX_UID_SIZE];
-  int current_pid_num = 1; //TODO: see line 41
+  int greatest_pid_num = 1;
+  char greatest_uid[MAX_UID_SIZE] = "PPID NOT FOUND";
+  int current_pid_num = 1;
   char current_uid[MAX_UID_SIZE];
   int line_ppid = -1;
   char line_uid[MAX_UID_SIZE];
@@ -61,7 +63,9 @@ void read_lines_ppid(int user_ppid) {
       }
     }
   }
-  printf("%s %d\n", greatest_uid, greatest_pid_num);
+  if(strcmp(greatest_uid, "PPID NOT FOUND") != 0) {
+    printf("%s %d\n", greatest_uid, greatest_pid_num);
+  }
 }
 
 int main(int argc, char **argv) {
