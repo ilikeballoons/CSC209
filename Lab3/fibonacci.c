@@ -15,6 +15,18 @@
  */
 
 /* Write your solution here */
+void fib(int **pointer, int n) {
+  int *array = malloc(n * sizeof(int));
+
+  int t1 = 0, t2 = 1, next_term;
+  for (int i = 1; i <= n; ++i) {
+    array[i-1] = t1;
+    next_term = t1 + t2;
+    t1 = t2;
+    t2 = next_term;
+  }
+  *pointer = array;
+}
 
 
 int main(int argc, char **argv) {
