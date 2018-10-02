@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
     // Your code goes here
 
     strncpy(greeting, argv[1], 20);
-    strcat(greeting, " ");
+    strncat(greeting, " ", 19-strlen(greeting));
     strncat(greeting, name, 19-strlen(greeting));
 
     printf("%s\n", greeting);
