@@ -4,6 +4,7 @@
 #include <time.h>
 #include "hcq.h"
 #define INPUT_BUFFER_SIZE 256
+#define COURSE_CODE_SIZE 7
 
 /*
  * Return a pointer to the struct student with name stu_name
@@ -13,39 +14,40 @@ Student *find_student(Student *stu_list, char *student_name) {
     return NULL;
 }
 
-
-
 /*   Return a pointer to the ta with name ta_name or NULL
- *   if no such TA exists in ta_list. 
+ *   if no such TA exists in ta_list.
  */
 Ta *find_ta(Ta *ta_list, char *ta_name) {
     return NULL;
 }
 
-
 /*  Return a pointer to the course with this code in the course list
  *  or NULL if there is no course in the list with this code.
  */
 Course *find_course(Course *courses, int num_courses, char *course_code) {
+  printf("num_courses: %d", num_courses);
+  for (int i = 0; i < num_courses; i++) {
+    if (strcmp(courses[i].code, course_code) == 0) {
+      printf("code: %s desc: %s\n", courses[i].code, courses[i].description);
+      return &courses[i];
+    }
+  }
     return NULL;
 }
-    
 
 /* Add a student to the queue with student_name and a question about course_code.
  * if a student with this name already has a question in the queue (for any
    course), return 1 and do not create the student.
  * If course_code does not exist in the list, return 2 and do not create
  * the student struct.
- * For the purposes of this assignment, don't check anything about the 
- * uniqueness of the name. 
+ * For the purposes of this assignment, don't check anything about the
+ * uniqueness of the name.
  */
 int add_student(Student **stu_list_ptr, char *student_name, char *course_code,
     Course *course_array, int num_courses) {
 
     return 0;
 }
-
-
 /* Student student_name has given up waiting and left the help centre
  * before being called by a Ta. Record the appropriate statistics, remove
  * the student from the queues and clean up any no-longer-needed memory.
@@ -56,7 +58,7 @@ int give_up_waiting(Student **stu_list_ptr, char *student_name) {
     return 0;
 }
 
-/* Create and prepend Ta with ta_name to the head of ta_list. 
+/* Create and prepend Ta with ta_name to the head of ta_list.
  * For the purposes of this assignment, assume that ta_name is unique
  * to the help centre and don't check it.
  */
@@ -80,9 +82,9 @@ void add_ta(Ta **ta_list_ptr, char *ta_name) {
     *ta_list_ptr = new_ta;
 }
 
-/* The TA ta is done with their current student. 
- * Calculate the stats (the times etc.) and then 
- * free the memory for the student. 
+/* The TA ta is done with their current student.
+ * Calculate the stats (the times etc.) and then
+ * free the memory for the student.
  * If the TA has no current student, do nothing.
  */
 void release_current_student(Ta *ta) {
@@ -109,7 +111,7 @@ int remove_ta(Ta **ta_list_ptr, char *ta_name) {
     while (head->next != NULL) {
         if (strcmp(head->next->name, ta_name) == 0) {
             Ta *ta_tofree = head->next;
-            //  We have found the ta to remove, but before we do that 
+            //  We have found the ta to remove, but before we do that
             //  we need to finish with the student and free the student.
             //  You need to complete this helper function
             release_current_student(ta_tofree);
@@ -126,15 +128,10 @@ int remove_ta(Ta **ta_list_ptr, char *ta_name) {
     return 1;
 }
 
-
-
-
-
-
 /* TA ta_name is finished with the student they are currently helping (if any)
- * and are assigned to the next student in the full queue. 
- * If the queue is empty, then TA ta_name simply finishes with the student 
- * they are currently helping, records appropriate statistics, 
+ * and are assigned to the next student in the full queue.
+ * If the queue is empty, then TA ta_name simply finishes with the student
+ * they are currently helping, records appropriate statistics,
  * and sets current_student for this TA to NULL.
  * If ta_name is not in ta_list, return 1 and do nothing.
  */
@@ -143,21 +140,18 @@ int take_next_overall(char *ta_name, Ta *ta_list, Student **stu_list_ptr) {
     return 0;
 }
 
-
-
 /* TA ta_name is finished with the student they are currently helping (if any)
- * and are assigned to the next student in the course with this course_code. 
- * If no student is waiting for this course, then TA ta_name simply finishes 
+ * and are assigned to the next student in the course with this course_code.
+ * If no student is waiting for this course, then TA ta_name simply finishes
  * with the student they are currently helping, records appropriate statistics,
  * and sets current_student for this TA to NULL.
  * If ta_name is not in ta_list, return 1 and do nothing.
- * If course is invalid return 2, but finish with any current student. 
+ * If course is invalid return 2, but finish with any current student.
  */
 int take_next_course(char *ta_name, Ta *ta_list, Student **stu_list_ptr, char *course_code, Course *courses, int num_courses) {
-    
+
     return 0;
 }
-
 
 /* For each course (in the same order as in the config file), print
  * the <course code>: <number of students waiting> "in queue\n" followed by
@@ -167,13 +161,12 @@ int take_next_course(char *ta_name, Ta *ta_list, Student **stu_list_ptr, char *c
  */
 void print_all_queues(Student *stu_list, Course *courses, int num_courses) {
          //printf("%s: %d in queue\n", var1, var2);
-             //printf("\t%s\n",var3); 
+             //printf("\t%s\n",var3);
 }
-
 
 /*
  * Print to stdout, a list of each TA, who they are serving at from what course
- * Uncomment and use the printf statements 
+ * Uncomment and use the printf statements
  */
 void print_currently_serving(Ta *ta_list) {
     //printf("No TAs are in the help centre.\n");
@@ -181,10 +174,9 @@ void print_currently_serving(Ta *ta_list) {
     //printf("TA: %s has no student\n", var3);
 }
 
-
 /*  list all students in queue (for testing and debugging)
- *   maybe suggest it is useful for debugging but not included in marking? 
- */ 
+ *   maybe suggest it is useful for debugging but not included in marking?
+ */
 void print_full_queue(Student *stu_list) {
 
 }
@@ -195,13 +187,14 @@ void print_full_queue(Student *stu_list) {
  */
 int stats_by_course(Student *stu_list, char *course_code, Course *courses, int num_courses, Ta *ta_list) {
 
-    // TODO: students will complete these next pieces but not all of this 
+    // TODO: students will complete these next pieces but not all of this
     //       function since we want to provide the formatting
-       
+    Course *found = find_course(courses, num_courses, course_code);
 
-    
-    // You MUST not change the following statements or your code 
-    //  will fail the testing. 
+    printf("%s:%s \n", found->code, found->description);
+
+    // You MUST not change the following statements or your code
+    //  will fail the testing.
 /*
     printf("%s:%s \n", found->code, found->description);
     printf("\t%d: waiting\n", students_waiting);
@@ -214,6 +207,14 @@ int stats_by_course(Student *stu_list, char *course_code, Course *courses, int n
     return 0;
 }
 
+/* Helper function for creating new courses */
+Course *new_course (char *course_code, char *course_desc) {
+  Course *new = (Course *) malloc(sizeof(Course));
+  strcpy(new->code, course_code);
+  new->description = (char *) malloc(INPUT_BUFFER_SIZE-COURSE_CODE_SIZE);
+  strcpy(new->description, course_desc);
+  return new;
+}
 
 /* Dynamically allocate space for the array course list and populate it
  * according to information in the configuration file config_filename
@@ -221,6 +222,37 @@ int stats_by_course(Student *stu_list, char *course_code, Course *courses, int n
  * If the configuration file can not be opened, call perror() and exit.
  */
 int config_course_list(Course **courselist_ptr, char *config_filename) {
-    
-    return 0;
+  int course_num = 0;
+  FILE *file;
+  file = fopen(config_filename, "r");
+
+  char input_line[INPUT_BUFFER_SIZE];
+  char course_code[COURSE_CODE_SIZE];
+  // char *course_code_ptr = malloc(COURSE_CODE_SIZE);
+  char course_desc[INPUT_BUFFER_SIZE-COURSE_CODE_SIZE];
+
+  if (file == NULL) {
+    perror("Error opening file");
+    exit(1);
+  }
+  if (fgets(input_line, INPUT_BUFFER_SIZE, file) != NULL) { // set the course number from the first line of file
+    if (course_num == 0) {
+      sscanf(input_line, "%d", &course_num);
+      courselist_ptr = malloc(course_num * sizeof(Course *));
+    }
+  }
+
+  for (int i = 0; i < course_num; i++) { // read in the courses
+    if (fgets(input_line, INPUT_BUFFER_SIZE, file) != NULL) { // error checking
+      sscanf(input_line, "%s %[^\n]s", course_code, course_desc);
+      courselist_ptr[i] = new_course(course_code, course_desc);
+    }
+  }
+  // printf("loaded courses below\n");
+  // for (int i = 0; i < course_num; i++) {
+  //   printf("code: %s\n desc: %s\n\n", courselist_ptr[i]->code, courselist_ptr[i]->description);
+  // }
+
+  fclose(file);
+  return course_num;
 }
