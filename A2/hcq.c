@@ -209,11 +209,13 @@ int stats_by_course(Student *stu_list, char *course_code, Course *courses, int n
 
 /* Helper function for creating new courses */
 Course *new_course (char *course_code, char *course_desc) {
-  Course *new = malloc(sizeof(Course));
-  strcpy(new->code, course_code);
-  new->description = (char *) malloc(INPUT_BUFFER_SIZE-COURSE_CODE_SIZE);
-  strcpy(new->description, course_desc);
-  return new;
+  Course *new_ptr = malloc(sizeof(Course*));
+  Course new;
+  strcpy(new.code, course_code);
+  new.description = (char *) malloc(INPUT_BUFFER_SIZE-COURSE_CODE_SIZE);
+  strcpy(new.description, course_desc);
+  new_ptr = &new;
+  return new_ptr;
 }
 
 /* Dynamically allocate space for the array course list and populate it
@@ -235,18 +237,15 @@ int config_course_list(Course **courselist_ptr, char *config_filename) {
     exit(1);
   }
   if (fgets(input_line, INPUT_BUFFER_SIZE, file) != NULL) { // set the course number from the first line of file
-    if (course_num == 0) {
       sscanf(input_line, "%d", &course_num);
       *courselist_ptr = malloc(course_num *sizeof(Course*));
-    }
+      for (int i = 0; i < course_num; i++) { // read in the courses
+        if (fgets(input_line, INPUT_BUFFER_SIZE, file) != NULL) { // error checking
+          sscanf(input_line, "%s %[^\n]", course_code, course_desc);
+          (*courselist_ptr)[i] = *new_course(course_code, course_desc);
+        }
+      }
   }
-  for (int i = 0; i < course_num; i++) { // read in the courses
-    if (fgets(input_line, INPUT_BUFFER_SIZE, file) != NULL) { // error checking
-      sscanf(input_line, "%s %[^\n]s", course_code, course_desc);
-      courselist_ptr[i] = new_course(course_code, course_desc);
-    }
-  }
-  //NOTE: IF YOU INSPECT COURSELIST_PTR HERE, ALL VALUES ARE CORRECT, SEE HELPCENTRE.C: 129
   fclose(file);
   return course_num;
 }
