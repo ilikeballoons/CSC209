@@ -25,10 +25,8 @@ Ta *find_ta(Ta *ta_list, char *ta_name) {
  *  or NULL if there is no course in the list with this code.
  */
 Course *find_course(Course *courses, int num_courses, char *course_code) {
-  printf("num_courses: %d", num_courses);
   for (int i = 0; i < num_courses; i++) {
     if (strcmp(courses[i].code, course_code) == 0) {
-      printf("code: %s desc: %s\n", courses[i].code, courses[i].description);
       return &courses[i];
     }
   }
@@ -190,7 +188,6 @@ int stats_by_course(Student *stu_list, char *course_code, Course *courses, int n
     // TODO: students will complete these next pieces but not all of this
     //       function since we want to provide the formatting
     Course *found = find_course(courses, num_courses, course_code);
-
     printf("%s:%s \n", found->code, found->description);
 
     // You MUST not change the following statements or your code
@@ -209,10 +206,10 @@ int stats_by_course(Student *stu_list, char *course_code, Course *courses, int n
 
 /* Helper function for creating new courses */
 Course *new_course (char *course_code, char *course_desc) {
-  Course *new_ptr = malloc(sizeof(Course*));
+  Course *new_ptr;
   Course new;
   strcpy(new.code, course_code);
-  new.description = (char *) malloc(INPUT_BUFFER_SIZE-COURSE_CODE_SIZE);
+  new.description = malloc(INPUT_BUFFER_SIZE-COURSE_CODE_SIZE);
   strcpy(new.description, course_desc);
   new_ptr = &new;
   return new_ptr;
