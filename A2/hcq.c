@@ -237,7 +237,7 @@ int config_course_list(Course **courselist_ptr, char *config_filename) {
   if (fgets(input_line, INPUT_BUFFER_SIZE, file) != NULL) { // set the course number from the first line of file
     if (course_num == 0) {
       sscanf(input_line, "%d", &course_num);
-      *courselist_ptr = malloc(course_num * sizeof(Course *)); // CORRECT
+      *courselist_ptr = malloc(course_num *sizeof(Course*));
     }
   }
   for (int i = 0; i < course_num; i++) { // read in the courses
@@ -246,7 +246,7 @@ int config_course_list(Course **courselist_ptr, char *config_filename) {
       courselist_ptr[i] = new_course(course_code, course_desc);
     }
   }
-
+  //NOTE: IF YOU INSPECT COURSELIST_PTR HERE, ALL VALUES ARE CORRECT, SEE HELPCENTRE.C: 129
   fclose(file);
   return course_num;
 }
