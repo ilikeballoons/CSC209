@@ -33,6 +33,25 @@ Course *find_course(Course *courses, int num_courses, char *course_code) {
     return NULL;
 }
 
+Student *new_student(char *name, Course *course) {
+  Student new;
+  new.name = malloc(strlen(name) * sizeof(char)); //NOTE: do i need sizeofchar?
+  strcpy(new.name, name);
+
+  new.arrival_time = malloc(sizeof(time_t));
+  time_t now = time(NULL);
+  memcpy(new.arrival_time, &now, sizeof(time_t));
+
+  new.course = course;
+  new.next_overall = NULL; // NOTE: implement properly
+  new.next_course = NULL;
+
+  Student *new_ptr;
+  new_ptr = &new;
+  return new_ptr;
+
+}
+
 /* Add a student to the queue with student_name and a question about course_code.
  * if a student with this name already has a question in the queue (for any
    course), return 1 and do not create the student.
@@ -44,6 +63,26 @@ Course *find_course(Course *courses, int num_courses, char *course_code) {
 int add_student(Student **stu_list_ptr, char *student_name, char *course_code,
     Course *course_array, int num_courses) {
 
+    if (!(find_course(course_array, num_courses, course_code))) {
+      return 2; // course not found
+    }
+
+    if (find_student(*stu_list_ptr, student_name)) { //TODO: write find_student
+      return 1; // student exists in queue
+    }
+
+    Course *found_course = find_course(course_array, num_courses, course_code);
+    Student *student_queue_tail = *stu_list_ptr;
+
+    while (student_queue_tail->next_course != NULL) {
+      // find the tail of the student list
+      student_queue_tail = student_queue_tail->next_course;
+    }
+    student_queue_tail->next_course = malloc(sizeof(Student));
+    // create the struct student
+    Student *student = new_student(student_name, found_course);
+    // add the newly created struct to the tail of the list and make it the new tail
+    memcpy(student_queue_tail->next_course, student, sizeof(Student));
     return 0;
 }
 /* Student student_name has given up waiting and left the help centre
@@ -206,11 +245,12 @@ int stats_by_course(Student *stu_list, char *course_code, Course *courses, int n
 
 /* Helper function for creating new courses */
 Course *new_course (char *course_code, char *course_desc) {
-  Course *new_ptr;
   Course new;
   strcpy(new.code, course_code);
   new.description = malloc(INPUT_BUFFER_SIZE-COURSE_CODE_SIZE);
   strcpy(new.description, course_desc);
+
+  Course *new_ptr; // TODO: do i need this ptr or could i just return &new?
   new_ptr = &new;
   return new_ptr;
 }
