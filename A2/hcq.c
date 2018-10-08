@@ -72,9 +72,17 @@ int add_student(Student **stu_list_ptr, char *student_name, char *course_code,
     }
 
     Course *found_course = find_course(course_array, num_courses, course_code);
+
+    if(!(*stu_list_ptr)) { // first student
+      *stu_list_ptr = malloc(sizeof(Student));
+      Student *student = new_student(student_name, found_course);
+      memcpy(*stu_list_ptr, student, sizeof(Student));
+      return 0;
+    }
+
     Student *student_queue_tail = *stu_list_ptr;
 
-    while (student_queue_tail->next_course != NULL) {
+    while (student_queue_tail->next_course) {
       // find the tail of the student list
       student_queue_tail = student_queue_tail->next_course;
     }
