@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "bitmap.h"
 
 
@@ -8,7 +9,7 @@
  * height in the given bitmap file.
  */
 void read_bitmap_metadata(FILE *image, int *pixel_array_offset, int *width, int *height) {
-  int error;
+  int error = 0;
 
   fseek(image, 10, SEEK_SET);
   error += fread(pixel_array_offset, sizeof(int), 1, image);
@@ -43,7 +44,29 @@ void read_bitmap_metadata(FILE *image, int *pixel_array_offset, int *width, int 
  * 4. Return the address of the first `struct pixel *` you initialized.
  */
 struct pixel **read_pixel_array(FILE *image, int pixel_array_offset, int width, int height) {
+  struct pixel **pixel_map = malloc(height * sizeof(struct pixel*));
 
+  for (int i = 0; i < height; i++) {
+    pixel_map[i] = malloc(width * sizeof(struct pixel));
+  }
+
+  fseek(image, pixel_array_offset, SEEK_SET);
+  unsigned char r, g, b;
+  struct pixel current;
+  for (int row = 0; row < height; row++){
+    for (int col = 0; col < width; col++) {
+      fread(&b, 1, 1, image);
+      fread(&g, 1, 1, image);
+      fread(&r, 1, 1, image);
+      current.blue = b;
+      current.green = g;
+      current.red = r;
+
+      memcpy(&(pixel_map[row][col]), &current, sizeof(struct pixel));
+    }
+  }
+
+  return pixel_map;
 }
 
 
