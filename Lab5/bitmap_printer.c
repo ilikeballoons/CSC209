@@ -38,6 +38,17 @@ int main(int argc, char **argv) {
     }
 
     // Clean up: you need to do this!
+    for (int row = 0; row < height; row++) {
+      //for (int col = 0; col < width; col++) {
+        free(pixels[row]);
+    }
+    free(pixels);
+
+    int error = fclose(image);
+    if (error != 0) {
+      fprintf(stderr, "Cannot close file\n");
+      exit(1);
+    }
 
     return 0;
 }
