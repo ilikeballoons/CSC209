@@ -11,6 +11,17 @@
  * or NULL if no student with this name exists in the stu_list
  */
 Student *find_student(Student *stu_list, char *student_name) {
+    if (stu_list == NULL) { // no added students
+      return NULL;
+    }
+
+    Student *current_student = stu_list;
+    while (current_student->next_overall) {
+      if (strcmp(current_student->name, student_name) == 0) {
+        return current_student;
+      }
+      current_student = current_student->next_overall;
+    }
     return NULL;
 }
 
@@ -66,31 +77,41 @@ int add_student(Student **stu_list_ptr, char *student_name, char *course_code,
     if (!(find_course(course_array, num_courses, course_code))) {
       return 2; // course not found
     }
-
-    if (find_student(*stu_list_ptr, student_name)) { //TODO: write find_student
-      return 1; // student exists in queue
-    }
-
     Course *found_course = find_course(course_array, num_courses, course_code);
-
-    if(!(*stu_list_ptr)) { // first student
-      *stu_list_ptr = malloc(sizeof(Student));
-      Student *student = new_student(student_name, found_course);
-      memcpy(*stu_list_ptr, student, sizeof(Student));
-      return 0;
-    }
-
-    Student *student_queue_tail = *stu_list_ptr;
-
-    while (student_queue_tail->next_course) {
-      // find the tail of the student list
-      student_queue_tail = student_queue_tail->next_course;
-    }
-    student_queue_tail->next_course = malloc(sizeof(Student));
-    // create the struct student
+    Student *new_student_loc = malloc(sizeof(Student));
     Student *student = new_student(student_name, found_course);
-    // add the newly created struct to the tail of the list and make it the new tail
-    memcpy(student_queue_tail->next_course, student, sizeof(Student));
+    memcpy(new_student_loc, student, sizeof(Student));
+
+    if(!(*stu_list_ptr)) { // first student overall
+      *stu_list_ptr = new_student_loc;
+
+      // return 0;
+    } else { // other students in the queue
+      // if (find_student(*stu_list_ptr, student_name)) {
+      //   return 1; // student exists in queue NOTE doesn't work properly
+      // }
+      /*
+      * Need to add this new student into 1, possibly two locations
+      * student_queue_tail->next_overall (always)
+      *if during the queue traversal the found course is found, then a new traversal should begin
+      * this traversal goes along the next_course and adds a pointer to this student there as well
+      */
+
+      Student *student_queue_tail = *stu_list_ptr;
+      while (student_queue_tail->next_overall) { // traverse the queue
+        student_queue_tail = student_queue_tail->next_overall;
+      }
+      student_queue_tail->next_overall = new_student_loc;
+    }
+    if (!(found_course->head)) {// if there are no students in this course
+      // make this student the head and the tail
+      found_course->head = new_student_loc;
+      found_course->tail = new_student_loc;;
+
+    } else {
+      (found_course->tail)->next_course = new_student_loc;;
+      found_course->tail = new_student_loc;;
+    }
     return 0;
 }
 /* Student student_name has given up waiting and left the help centre
@@ -235,7 +256,16 @@ int stats_by_course(Student *stu_list, char *course_code, Course *courses, int n
     // TODO: students will complete these next pieces but not all of this
     //       function since we want to provide the formatting
     Course *found = find_course(courses, num_courses, course_code);
-    printf("%s:%s \n", found->code, found->description);
+    printf("%s: %s \n", found->code, found->description);
+    //extra functionality
+    Student *current_student = stu_list;
+    if(current_student->next_overall) {
+      while (current_student->next_overall) {
+        printf("%s: %s \n", (current_student->course)->code, current_student->name);
+        printf("next_course: %s, overall: %s \n", (current_student->next_course)->name, (current_student->next_overall)->name);
+        current_student = current_student->next_overall;
+      }
+    }
 
     // You MUST not change the following statements or your code
     //  will fail the testing.
@@ -257,6 +287,8 @@ Course *new_course (char *course_code, char *course_desc) {
   strcpy(new.code, course_code);
   new.description = malloc(INPUT_BUFFER_SIZE-COURSE_CODE_SIZE);
   strcpy(new.description, course_desc);
+  new.head = NULL;
+  new.tail = NULL;
 
   Course *new_ptr; // TODO: do i need this ptr or could i just return &new?
   new_ptr = &new;
