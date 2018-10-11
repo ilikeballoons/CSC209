@@ -258,14 +258,14 @@ int stats_by_course(Student *stu_list, char *course_code, Course *courses, int n
     Course *found = find_course(courses, num_courses, course_code);
     printf("%s: %s \n", found->code, found->description);
     //extra functionality
-    Student *current_student = stu_list;
-    if(current_student->next_overall) {
-      while (current_student->next_overall) {
-        printf("%s: %s \n", (current_student->course)->code, current_student->name);
-        printf("next_course: %s, overall: %s \n", (current_student->next_course)->name, (current_student->next_overall)->name);
-        current_student = current_student->next_overall;
-      }
-    }
+    // Student *current_student = stu_list;
+    // if(current_student->next_overall) {
+    //   while (current_student->next_overall) {
+    //     printf("%s: %s \n", (current_student->course)->code, current_student->name);
+    //     printf("next_course: %s, overall: %s \n", (current_student->next_course)->name, (current_student->next_overall)->name);
+    //     current_student = current_student->next_overall;
+    //   }
+    // }
 
     // You MUST not change the following statements or your code
     //  will fail the testing.
@@ -283,16 +283,22 @@ int stats_by_course(Student *stu_list, char *course_code, Course *courses, int n
 
 /* Helper function for creating new courses */
 Course *new_course (char *course_code, char *course_desc) {
-  Course new;
-  strcpy(new.code, course_code);
-  new.description = malloc(INPUT_BUFFER_SIZE-COURSE_CODE_SIZE);
-  strcpy(new.description, course_desc);
-  new.head = NULL;
-  new.tail = NULL;
+  printf("code: %s, description: %s\n", course_code, course_desc);
+  Course *ptr = (Course*) malloc(sizeof(Course));
+  // Course new;
+  // strcpy(new.code, course_code); // strcpy(ptr->code, course_code)
+  strcpy(ptr->code, course_code); // strcpy(ptr->code, course_code)
+  ptr->description = malloc(sizeof(char) * INPUT_BUFFER_SIZE);
+  strcpy(ptr->description, course_desc);
+  ptr->head = NULL;
+  ptr->tail = NULL;
+  ptr->helped = 0;
+  ptr->bailed = 0;
+  ptr->wait_time = 0.0;
+  ptr->help_time = 0.0;
 
-  Course *new_ptr; // TODO: do i need this ptr or could i just return &new?
-  new_ptr = &new;
-  return new_ptr;
+  // memcpy(ptr, &new, sizeof(Course));
+  return ptr;
 }
 
 /* Dynamically allocate space for the array course list and populate it
@@ -318,11 +324,10 @@ int config_course_list(Course **courselist_ptr, char *config_filename) {
       *courselist_ptr = malloc(course_num *sizeof(Course*));
       for (int i = 0; i < course_num; i++) { // read in the courses
         if (fgets(input_line, INPUT_BUFFER_SIZE, file) != NULL) { // error checking
-          sscanf(input_line, "%s %[^\n]", course_code, course_desc);
+          sscanf(input_line, "%s %[^\n]s", course_code, course_desc);
           (*courselist_ptr)[i] = *new_course(course_code, course_desc);
         }
       }
   }
-  fclose(file);
   return course_num;
 }
