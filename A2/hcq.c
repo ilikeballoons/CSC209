@@ -26,7 +26,7 @@ Student *find_student(Student *stu_list, char *student_name) {
 }
 
 /*   Return a pointer to the ta with name ta_name or NULL
- *   if no such TA exists in ta_list. TODO: test
+ *   if no such TA exists in ta_list.
  */
 Ta *find_ta(Ta *ta_list, char *ta_name) {
   if (ta_list == NULL) {
@@ -66,7 +66,7 @@ void delete_student(Student *student) {
 
 Student *new_student(char *name, Course *course) {
   Student *new = malloc(sizeof(Student));
-  new->name = malloc(strlen(name) * sizeof(char));
+  new->name = malloc(strlen(name));
   strcpy(new->name, name);
 
   new->arrival_time = malloc(sizeof(time_t));
@@ -264,28 +264,27 @@ int remove_ta(Ta **ta_list_ptr, char *ta_name) {
  */
 int take_next_overall(char *ta_name, Ta *ta_list, Student **stu_list_ptr) {
     Ta *ta = find_ta(ta_list, ta_name);
-    if (ta == NULL) { return 1; }
-
-    // take the new student, record his arrival time
-    // add NOW - arrival time to the student's course's wait_time
-    // set the students arrival time to NOW
-
-    // take the next overallstudent and set it to the TA's current students
-    // also remove this student from the queue
-    // increase the student's course's helped by 1
+    if (!ta) { return 1; }
 
     //set the student's course's head to the next student in the courses
     release_current_student(ta);
+    if (!(*stu_list_ptr)) { // if there are no students in the queue
+      ta->current_student = NULL;
+      return 0;
+    }
     ta->current_student = *stu_list_ptr;
-    time_t now = time(NULL);
     Course *course = ta->current_student->course;
-    time_t waited_time = difftime(now, *(ta->current_student->arrival_time));
-    course->wait_time += waited_time;
+    time_t now = time(NULL);
+    course->wait_time += difftime(now, *(ta->current_student->arrival_time));
     *(ta->current_student->arrival_time) = now;
 
-
-    *stu_list_ptr = (*stu_list_ptr)->next_overall; //might not works
-    course->head = course->head->next_course;
+    *stu_list_ptr = (*stu_list_ptr)->next_overall;
+    if (course->head == course->tail) {
+      course->head = NULL;
+      course->tail = NULL;
+    } else {
+      course->head = course->head->next_course;
+    }
     return 0;
 }
 
@@ -298,19 +297,36 @@ int take_next_overall(char *ta_name, Ta *ta_list, Student **stu_list_ptr) {
  * If course is invalid return 2, but finish with any current student.
  */
 int take_next_course(char *ta_name, Ta *ta_list, Student **stu_list_ptr, char *course_code, Course *courses, int num_courses) {
-    // Ta ta = find_ta(ta_list, ta_name);
-    // if (ta == NULL) { return 1; }
-    //
-    //
-    // time_t now = time(NULL);
-    // time_t helped_time = difftime(now, *(ta->current_student->arrival_time));
-    // Course *course = find_course(courses, num_courses, course_code);
-    // if (course == NULL) {
-    //   //TODO: finish with current student
-    //   return 2;
-    // }
+  Ta *ta = find_ta(ta_list, ta_name);
+  if (ta == NULL) { return 1; }
+  Course *course = find_course(courses, num_courses, course_code);
+  release_current_student(ta);
+  if (!course) { // invalid course
+    ta->current_student = NULL;
+    return 2;
+  }
 
+  if (!course->head) { // 0 students waiting
+    release_current_student(ta);
     return 0;
+  }
+
+  ta->current_student = course->head;
+  if (course->head == course->tail) { // 1 student waiting
+    course->head = NULL;
+    course->tail = NULL;
+  } else { // 2+ students waiting
+    course->head = course->head->next_course;
+  }
+  if (ta->current_student == *stu_list_ptr) { // student happens to be at front of queue anyway
+    *stu_list_ptr = (*stu_list_ptr)->next_overall;
+  }
+
+  time_t now = time(NULL);
+  course->wait_time += difftime(now, *(ta->current_student->arrival_time));
+  *(ta->current_student->arrival_time) = now;
+
+  return 0;
 }
 
 /* For each course (in the same order as in the config file), print
@@ -342,16 +358,43 @@ void print_all_queues(Student *stu_list, Course *courses, int num_courses) {
  * Uncomment and use the printf statements
  */
 void print_currently_serving(Ta *ta_list) {
-    //printf("No TAs are in the help centre.\n");
-    //printf("TA: %s is serving %s from %s\n",i var1, var2);
-    //printf("TA: %s has no student\n", var3);
+  if (!ta_list) {
+    printf("No TAs are in the help centre.\n");
+    return;
+  }
+  Ta *ta = ta_list;
+  while(ta){
+    char *ta_name = ta->name;
+    if (ta->current_student) {
+     char *student_name = ta->current_student->name;
+     char *code = ta->current_student->course->code;
+      printf("TA: %s is serving %s from %s\n", ta_name, student_name, code);
+    } else {
+      printf("TA: %s has no student\n", ta_name);
+    }
+    ta = ta->next;
+  }
 }
 
 /*  list all students in queue (for testing and debugging)
  *   maybe suggest it is useful for debugging but not included in marking?
  */
 void print_full_queue(Student *stu_list) {
-
+  Student *current_student = stu_list;
+  if (!current_student) { return; } // no students
+  while(current_student) {
+    printf("Name: %s\tCourse: %s\tArrival Time: %li\n", current_student->name, current_student->course->code, *(current_student->arrival_time));
+    if (current_student->next_overall) {
+      if (current_student->next_course && current_student->next_overall) {
+        printf("Next Overall: %s\t Next Course: %s\n", current_student->next_overall->name, current_student->next_course->name);
+      } else {
+        printf("Next Overall: %s\t Next Course: NULL\n", current_student->next_overall->name);
+      }
+      current_student = current_student->next_overall;
+    } else {
+      current_student = NULL;
+    }
+  }
 }
 
 /* Prints statistics to stdout for course with this course_code
@@ -363,20 +406,30 @@ int stats_by_course(Student *stu_list, char *course_code, Course *courses, int n
     // TODO: students will complete these next pieces but not all of this
     //       function since we want to provide the formatting
     Course *found = find_course(courses, num_courses, course_code);
-    printf("%s: %s \n", found->code, found->description);
-    //extra functionality
-    // Student *current_student = stu_list;
-    // if(current_student->next_overall) {
-    //   while (current_student->next_overall) {
-    //     printf("%s: %s \n", (current_student->course)->code, current_student->name);
-    //     printf("next_course: %s, overall: %s \n", (current_student->next_course)->name, (current_student->next_overall)->name);
-    //     current_student = current_student->next_overall;
-    //   }
-    // }
+
+    Student *course_student = found->head;
+    int students_waiting = 0;
+    while (course_student) { // check that this is correct TODO
+      students_waiting++;
+      if (course_student->next_course) {  //TODO: CHECK!!!!!
+        course_student = course_student->next_course;
+      } else {
+        course_student = NULL;
+      }
+    }
+    Ta *ta = ta_list;
+    int students_being_helped = 0;
+    while (ta) {
+      if(ta->current_student) {
+        if (ta->current_student->course == found) { students_being_helped++; }
+      }
+      if (ta->next) { ta = ta->next; }
+      else { ta = NULL; }
+    }
 
     // You MUST not change the following statements or your code
     //  will fail the testing.
-/*
+
     printf("%s:%s \n", found->code, found->description);
     printf("\t%d: waiting\n", students_waiting);
     printf("\t%d: being helped currently\n", students_being_helped);
@@ -384,7 +437,6 @@ int stats_by_course(Student *stu_list, char *course_code, Course *courses, int n
     printf("\t%d: gave_up\n", found->bailed);
     printf("\t%f: total time waiting\n", found->wait_time);
     printf("\t%f: total time helping\n", found->help_time);
-*/
     return 0;
 }
 
@@ -392,7 +444,7 @@ int stats_by_course(Student *stu_list, char *course_code, Course *courses, int n
 Course *new_course (char *course_code, char *course_desc) {
   Course *ptr = (Course*) malloc(sizeof(Course));
   strcpy(ptr->code, course_code);
-  ptr->description = malloc(sizeof(char) * INPUT_BUFFER_SIZE);
+  ptr->description = malloc(INPUT_BUFFER_SIZE);
   strcpy(ptr->description, course_desc);
   ptr->head = NULL;
   ptr->tail = NULL;
@@ -423,7 +475,7 @@ int config_course_list(Course **courselist_ptr, char *config_filename) {
   }
   if (fgets(input_line, INPUT_BUFFER_SIZE, file) != NULL) { // set the course number from the first line of file
       sscanf(input_line, "%d", &course_num);
-      *courselist_ptr = malloc(course_num *sizeof(Course*));
+      *courselist_ptr = malloc(course_num * sizeof(Course));
       for (int i = 0; i < course_num; i++) { // read in the courses
         if (fgets(input_line, INPUT_BUFFER_SIZE, file) != NULL) { // error checking
           sscanf(input_line, "%s %[^\n]s", course_code, course_desc);
