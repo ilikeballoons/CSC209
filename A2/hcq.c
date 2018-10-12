@@ -14,7 +14,7 @@ Student *find_student(Student *stu_list, char *student_name) {
     if (stu_list == NULL) { return NULL; }
 
     Student *current_student = stu_list;
-    while (current_student->next_overall) {
+    while (current_student) {
       if (strcmp(current_student->name, student_name) == 0) { return current_student; }
       current_student = current_student->next_overall;
     }
@@ -46,9 +46,12 @@ Course *find_course (Course *courses, int num_courses, char *course_code) {
       return &courses[i];
     }
   }
-    return NULL;
+    return NULL; // course not found
 }
 
+/*
+* Deallocate memory for the given student
+*/
 void delete_student (Student *student) {
   free(student->arrival_time);
   free(student->name);
@@ -82,7 +85,7 @@ Student *new_student(char *name, Course *course) {
 }
 
 /* Add a student to the queue with student_name and a question about course_code.
- * TODO: if a student with this name already has a question in the queue (for any
+ * if a student with this name already has a question in the queue (for any
    course), return 1 and do not create the student.
  * If course_code does not exist in the list, return 2 and do not create
  * the student struct.
@@ -96,41 +99,33 @@ int add_student (Student **stu_list_ptr, char *student_name, char *course_code,
       return 2; // course not found
     }
     Course *found_course = find_course(course_array, num_courses, course_code);
-    Student *new_student_loc = malloc(sizeof(Student));
-    if (new_student_loc == NULL) {
-       perror("malloc for new_student_loc");
+    Student *new_student_ptr = malloc(sizeof(Student));
+    if (new_student_ptr == NULL) {
+       perror("malloc for new_student_ptr");
        exit(1);
     }
-    Student *student = new_student(student_name, found_course);
-    memcpy(new_student_loc, student, sizeof(Student));
+    *new_student_ptr = *new_student(student_name, found_course);
+
+    if (*stu_list_ptr && find_student(*stu_list_ptr, student_name)) {
+      return 1; // student exists in queue
+    }
 
     if (!(*stu_list_ptr)) { // first student overall
-      *stu_list_ptr = new_student_loc;
+      *stu_list_ptr = new_student_ptr;
     } else { // other students in the queue
-      // if (find_student(*stu_list_ptr, student_name)) {
-      //   return 1; // student exists in queue NOTE doesn't work properly
-      // }
-      /*
-      * Need to add this new student into 1, possibly two locations
-      * student_queue_tail->next_overall (always)
-      *if during the queue traversal the found course is found, then a new traversal should begin
-      * this traversal goes along the next_course and adds a pointer to this student there as well
-      */
-
       Student *student_queue_tail = *stu_list_ptr;
-      while (student_queue_tail->next_overall) { // traverse the queue
+      while (student_queue_tail->next_overall) { // traverse the queue, stopping at the last student
         student_queue_tail = student_queue_tail->next_overall;
       }
-      student_queue_tail->next_overall = new_student_loc;
+      student_queue_tail->next_overall = new_student_ptr;
     }
     if (!(found_course->head)) {// if there are no students in this course
       // make this student the head and the tail
-      found_course->head = new_student_loc;
-      found_course->tail = new_student_loc;
-
+      found_course->head = new_student_ptr;
+      found_course->tail = new_student_ptr;
     } else {
-      (found_course->tail)->next_course = new_student_loc;
-      found_course->tail = new_student_loc;
+      (found_course->tail)->next_course = new_student_ptr;
+      found_course->tail = new_student_ptr;
     }
     return 0;
 }
@@ -141,15 +136,11 @@ int add_student (Student **stu_list_ptr, char *student_name, char *course_code,
  * If there is no student by this name in the stu_list, return 1.
  */
 int give_up_waiting (Student **stu_list_ptr, char *student_name) {
-  //find the student
   Student *found_student = find_student(*stu_list_ptr, student_name);
   // if not found return 1
   if (found_student == NULL) { return 1; }
 
-  // add the students now - arrival time to the courses waited time
-  time_t now = time(NULL);
-  found_student->course->wait_time += difftime(now, *(found_student->arrival_time));
-  // increase the courses->bailed by 1
+  found_student->course->wait_time += difftime(time(NULL), *(found_student->arrival_time));
   found_student->course->bailed++;
 
   //find the student in the queue whose next_overall is this student
@@ -216,12 +207,10 @@ void release_current_student (Ta *ta) {
   if (!ta->current_student) {
     return; //If the TA has no current student, do nothing.
   }
-  time_t now = time(NULL);
   Course *course = ta->current_student->course;
-  time_t helped_time = difftime(now, *(ta->current_student->arrival_time));
+  time_t helped_time = difftime(time(NULL), *(ta->current_student->arrival_time));
   course->help_time += helped_time;
   course->helped++;
-
   delete_student(ta->current_student);
 }
 
@@ -279,14 +268,14 @@ int take_next_overall (char *ta_name, Ta *ta_list, Student **stu_list_ptr) {
       ta->current_student = NULL;
       return 0;
     }
-    ta->current_student = *stu_list_ptr;
+    ta->current_student = *stu_list_ptr; //take next overall student
     Course *course = ta->current_student->course;
     time_t now = time(NULL);
     course->wait_time += difftime(now, *(ta->current_student->arrival_time));
     *(ta->current_student->arrival_time) = now;
 
-    *stu_list_ptr = (*stu_list_ptr)->next_overall;
-    if (course->head == course->tail) {
+    *stu_list_ptr = (*stu_list_ptr)->next_overall; // set the head of the student queue to the student in spot #2
+    if (course->head == course->tail) { // if there is only 1 student in this course queue
       course->head = NULL;
       course->tail = NULL;
     } else {
@@ -305,32 +294,32 @@ int take_next_overall (char *ta_name, Ta *ta_list, Student **stu_list_ptr) {
  */
 int take_next_course (char *ta_name, Ta *ta_list, Student **stu_list_ptr, char *course_code, Course *courses, int num_courses) {
   Ta *ta = find_ta(ta_list, ta_name);
-  if (ta == NULL) { return 1; }
-  Course *course = find_course(courses, num_courses, course_code);
+  if (ta == NULL) { return 1; } // invalid ta
+
   release_current_student(ta);
+  Course *course = find_course(courses, num_courses, course_code);
   if (!course) { // invalid course
     ta->current_student = NULL;
     return 2;
   }
 
   if (!course->head) { // 0 students waiting
-    release_current_student(ta);
     return 0;
   }
 
-  ta->current_student = course->head;
+  ta->current_student = course->head; // take the next student waiting in the course
   if (course->head == course->tail) { // 1 student waiting
     course->head = NULL;
     course->tail = NULL;
   } else { // 2+ students waiting
     course->head = course->head->next_course;
   }
-  if (ta->current_student == *stu_list_ptr) { // student happens to be at front of queue anyway
+  if (ta->current_student == *stu_list_ptr) { // student happens to be at front of the overall queue
     *stu_list_ptr = (*stu_list_ptr)->next_overall;
   } else { // if the student is not at the head of the student queue, we need to remove him from the queue and link the student that was pointing to him to his next_overall
     Student *previous_student = *stu_list_ptr;
     while (previous_student->next_overall && previous_student->next_overall != ta->current_student) {
-      previous_student = previous_student->next_overall;
+      previous_student = previous_student->next_overall; // find the student whose next overall is this student
     }
     // this should now be the student whose next_overall is the current student
     previous_student->next_overall = ta->current_student->next_overall;
@@ -422,9 +411,9 @@ int stats_by_course(Student *stu_list, char *course_code, Course *courses, int n
     Student *course_student = found->head;
 
     int students_waiting = 0;
-    while (course_student) { // check that this is correct TODO
+    while (course_student) {
       students_waiting++;
-      if (course_student->next_course) { course_student = course_student->next_course; } //TODO: CHECK!!!!!
+      if (course_student->next_course) { course_student = course_student->next_course; }
       else { course_student = NULL; }
     }
 
@@ -483,15 +472,15 @@ int config_course_list(Course **courselist_ptr, char *config_filename) {
   int course_num = 0;
   FILE *file;
   file = fopen(config_filename, "r");
+  if (file == NULL) {
+    perror("Error opening file");
+    exit(1);
+  }
 
   char input_line[INPUT_BUFFER_SIZE];
   char course_code[COURSE_CODE_SIZE];
   char course_desc[INPUT_BUFFER_SIZE-COURSE_CODE_SIZE];
 
-  if (file == NULL) {
-    perror("Error opening file");
-    exit(1);
-  }
   if (fgets(input_line, INPUT_BUFFER_SIZE, file) != NULL) { // set the course number from the first line of file
       sscanf(input_line, "%d", &course_num);
       *courselist_ptr = malloc(course_num * sizeof(Course));
