@@ -26,16 +26,29 @@ Student *find_student(Student *stu_list, char *student_name) {
 }
 
 /*   Return a pointer to the ta with name ta_name or NULL
- *   if no such TA exists in ta_list.
+ *   if no such TA exists in ta_list. TODO: test
  */
 Ta *find_ta(Ta *ta_list, char *ta_name) {
-    return NULL;
+  if (ta_list == NULL) {
+    return NULL; // no TAs
+  }
+  while(strcmp(ta_list->name, ta_name) != 0) {
+    if (ta_list->next != NULL) {
+      ta_list = ta_list->next;
+    } else {
+      return NULL;
+    }
+  }
+  return ta_list;
 }
 
 /*  Return a pointer to the course with this code in the course list
  *  or NULL if there is no course in the list with this code.
  */
 Course *find_course(Course *courses, int num_courses, char *course_code) {
+  if(courses == NULL) {
+    return NULL; // no courses
+  }
   for (int i = 0; i < num_courses; i++) {
     if (strcmp(courses[i].code, course_code) == 0) {
       return &courses[i];
@@ -45,26 +58,21 @@ Course *find_course(Course *courses, int num_courses, char *course_code) {
 }
 
 Student *new_student(char *name, Course *course) {
-  Student new;
-  new.name = malloc(strlen(name) * sizeof(char)); //NOTE: do i need sizeofchar?
-  strcpy(new.name, name);
+  Student *new = malloc(sizeof(Student));
+  new->name = malloc(strlen(name) * sizeof(char));
+  strcpy(new->name, name);
 
-  new.arrival_time = malloc(sizeof(time_t));
-  time_t now = time(NULL);
-  memcpy(new.arrival_time, &now, sizeof(time_t));
+  new->arrival_time = malloc(sizeof(time_t));
+  *(new->arrival_time) = time(NULL);
+  new->course = course;
+  new->next_overall = NULL;
+  new->next_course = NULL;
 
-  new.course = course;
-  new.next_overall = NULL; // NOTE: implement properly
-  new.next_course = NULL;
-
-  Student *new_ptr;
-  new_ptr = &new;
-  return new_ptr;
-
+  return new;
 }
 
 /* Add a student to the queue with student_name and a question about course_code.
- * if a student with this name already has a question in the queue (for any
+ * TODO: if a student with this name already has a question in the queue (for any
    course), return 1 and do not create the student.
  * If course_code does not exist in the list, return 2 and do not create
  * the student struct.
@@ -84,8 +92,6 @@ int add_student(Student **stu_list_ptr, char *student_name, char *course_code,
 
     if(!(*stu_list_ptr)) { // first student overall
       *stu_list_ptr = new_student_loc;
-
-      // return 0;
     } else { // other students in the queue
       // if (find_student(*stu_list_ptr, student_name)) {
       //   return 1; // student exists in queue NOTE doesn't work properly
@@ -106,11 +112,11 @@ int add_student(Student **stu_list_ptr, char *student_name, char *course_code,
     if (!(found_course->head)) {// if there are no students in this course
       // make this student the head and the tail
       found_course->head = new_student_loc;
-      found_course->tail = new_student_loc;;
+      found_course->tail = new_student_loc;
 
     } else {
-      (found_course->tail)->next_course = new_student_loc;;
-      found_course->tail = new_student_loc;;
+      (found_course->tail)->next_course = new_student_loc;
+      found_course->tail = new_student_loc;
     }
     return 0;
 }
@@ -154,6 +160,17 @@ void add_ta(Ta **ta_list_ptr, char *ta_name) {
  * If the TA has no current student, do nothing.
  */
 void release_current_student(Ta *ta) {
+  if (!ta->current_student) {
+    return; //If the TA has no current student, do nothing.
+  }
+
+  Course *course = ta->current_student->course;
+  course->helped++;
+
+  time_t helped_time = time(NULL);
+  // add the helped time to the course time
+  // the value for this should be
+
 
 }
 
@@ -202,6 +219,29 @@ int remove_ta(Ta **ta_list_ptr, char *ta_name) {
  * If ta_name is not in ta_list, return 1 and do nothing.
  */
 int take_next_overall(char *ta_name, Ta *ta_list, Student **stu_list_ptr) {
+    Ta *ta = find_ta(ta_list, ta_name);
+    if (ta == NULL) { return 1; }
+
+    // take the new student, record his arrival time
+    // add NOW - arrival time to the student's course's wait_time
+    // set the students arrival time to NOW
+
+    // take the next overallstudent and set it to the TA's current students
+    // also remove this student from the queue
+    // increase the student's course's helped by 1
+
+    //set the student's course's head to the next student in the courses
+
+    ta->current_student = *stu_list_ptr;
+    *stu_list_ptr = &(*stu_list_ptr[1]); //might not work
+    time_t now = time(NULL);
+    Course *course = ta->current_student->course;
+    time_t waited_time = difftime(now, *(ta->current_student->arrival_time));
+    course->wait_time += waited_time;
+    *(ta->current_student->arrival_time) = now;
+
+    course->helped++;
+    course->head = course->head->next_course;
 
     return 0;
 }
@@ -283,11 +323,8 @@ int stats_by_course(Student *stu_list, char *course_code, Course *courses, int n
 
 /* Helper function for creating new courses */
 Course *new_course (char *course_code, char *course_desc) {
-  printf("code: %s, description: %s\n", course_code, course_desc);
   Course *ptr = (Course*) malloc(sizeof(Course));
-  // Course new;
-  // strcpy(new.code, course_code); // strcpy(ptr->code, course_code)
-  strcpy(ptr->code, course_code); // strcpy(ptr->code, course_code)
+  strcpy(ptr->code, course_code);
   ptr->description = malloc(sizeof(char) * INPUT_BUFFER_SIZE);
   strcpy(ptr->description, course_desc);
   ptr->head = NULL;
@@ -296,8 +333,6 @@ Course *new_course (char *course_code, char *course_desc) {
   ptr->bailed = 0;
   ptr->wait_time = 0.0;
   ptr->help_time = 0.0;
-
-  // memcpy(ptr, &new, sizeof(Course));
   return ptr;
 }
 
