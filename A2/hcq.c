@@ -138,14 +138,14 @@ int give_up_waiting (Student **stu_list_ptr, char *student_name) {
 
   //find the student in the queue whose next_overall is this student
   Student *queued_overall_student = *stu_list_ptr;
-  while (queued_overall_student->next_overall && queued_overall_student->next_overall != found_student) {
+  while (queued_overall_student && queued_overall_student != found_student) {
     queued_overall_student = queued_overall_student->next_overall;
   }
   //find the student in the queue whose next_course is this student
   Student *queued_course_student = found_student->course->head;
   if (found_student != found_student->course->head) {
     //traverse the found student's course head->next_course until the next student is the found students
-    while (queued_course_student->next_course && queued_course_student->next_course != found_student) {
+    while (queued_course_student && queued_course_student != found_student) {
       queued_course_student = queued_course_student->next_course;
     }
   }
