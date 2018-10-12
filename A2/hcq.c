@@ -32,14 +32,15 @@ Ta *find_ta(Ta *ta_list, char *ta_name) {
   if (ta_list == NULL) {
     return NULL; // no TAs
   }
-  while(strcmp(ta_list->name, ta_name) != 0) {
-    if (ta_list->next != NULL) {
-      ta_list = ta_list->next;
+  Ta *ta = ta_list;
+  while(strcmp(ta->name, ta_name) != 0) {
+    if (ta->next != NULL) {
+      ta = ta->next;
     } else {
       return NULL;
     }
   }
-  return ta_list;
+  return ta;
 }
 
 /*  Return a pointer to the course with this code in the course list
@@ -55,6 +56,12 @@ Course *find_course(Course *courses, int num_courses, char *course_code) {
     }
   }
     return NULL;
+}
+
+void delete_student(Student *student) {
+  free(student->arrival_time);
+  free(student->name);
+  free(student);
 }
 
 Student *new_student(char *name, Course *course) {
@@ -127,6 +134,45 @@ int add_student(Student **stu_list_ptr, char *student_name, char *course_code,
  * If there is no student by this name in the stu_list, return 1.
  */
 int give_up_waiting(Student **stu_list_ptr, char *student_name) {
+  //find the student
+  Student *found_student = find_student(*stu_list_ptr, student_name);
+  // if not found return 1
+  if (found_student == NULL) { return 1; }
+
+  // add the students now - arrival time to the courses waited time
+  time_t now = time(NULL);
+  found_student->course->wait_time += difftime(now, *(found_student->arrival_time));
+  // increase the courses->bailed by 1
+  found_student->course->bailed++;
+
+  //find the student in the queue whose next_overall is this student
+  Student *queued_overall_student = *stu_list_ptr;
+  while(queued_overall_student->next_overall && queued_overall_student->next_overall != found_student){ //might not work
+    queued_overall_student = queued_overall_student->next_overall;
+  }
+  //find the student in the queue whose next_course is this student
+  Student *queued_course_student = found_student->course->head;
+  if(found_student != found_student->course->head){
+    //traverse the found student's course head->next_course until the next student is the found students
+    while(queued_course_student->next_course && queued_course_student->next_course != found_student){ //might not work
+      queued_course_student = queued_course_student->next_course;
+    }
+  }
+  // check if these two found students are the same
+  if(queued_course_student == queued_overall_student) {
+    //if yes (students are in the same course):
+    // set the next_overall to the found student's next_overall (can be null)
+    queued_course_student->next_overall = found_student->next_overall;
+    // set the next_course to the found student's next_course (can also be null)
+    queued_course_student->next_course = found_student->next_course;
+
+  } else {
+    //if no (students are in different courses):
+    //set the next_overall to the found student's next_overall (can be null)
+    queued_overall_student->next_overall = found_student->next_overall;
+    // set this second found student (the one whose next course is the found student) to the found_student's next_course (can be null)
+    queued_course_student->next_course = found_student->next_course;
+  }
     return 0;
 }
 
@@ -163,15 +209,13 @@ void release_current_student(Ta *ta) {
   if (!ta->current_student) {
     return; //If the TA has no current student, do nothing.
   }
-
+  time_t now = time(NULL);
   Course *course = ta->current_student->course;
+  time_t helped_time = difftime(now, *(ta->current_student->arrival_time));
+  course->help_time += helped_time;
   course->helped++;
 
-  time_t helped_time = time(NULL);
-  // add the helped time to the course time
-  // the value for this should be
-
-
+  delete_student(ta->current_student);
 }
 
 /* Remove this Ta from the ta_list and free the associated memory with
@@ -231,18 +275,17 @@ int take_next_overall(char *ta_name, Ta *ta_list, Student **stu_list_ptr) {
     // increase the student's course's helped by 1
 
     //set the student's course's head to the next student in the courses
-
+    release_current_student(ta);
     ta->current_student = *stu_list_ptr;
-    *stu_list_ptr = &(*stu_list_ptr[1]); //might not work
     time_t now = time(NULL);
     Course *course = ta->current_student->course;
     time_t waited_time = difftime(now, *(ta->current_student->arrival_time));
     course->wait_time += waited_time;
     *(ta->current_student->arrival_time) = now;
 
-    course->helped++;
-    course->head = course->head->next_course;
 
+    *stu_list_ptr = (*stu_list_ptr)->next_overall; //might not works
+    course->head = course->head->next_course;
     return 0;
 }
 
@@ -255,6 +298,17 @@ int take_next_overall(char *ta_name, Ta *ta_list, Student **stu_list_ptr) {
  * If course is invalid return 2, but finish with any current student.
  */
 int take_next_course(char *ta_name, Ta *ta_list, Student **stu_list_ptr, char *course_code, Course *courses, int num_courses) {
+    // Ta ta = find_ta(ta_list, ta_name);
+    // if (ta == NULL) { return 1; }
+    //
+    //
+    // time_t now = time(NULL);
+    // time_t helped_time = difftime(now, *(ta->current_student->arrival_time));
+    // Course *course = find_course(courses, num_courses, course_code);
+    // if (course == NULL) {
+    //   //TODO: finish with current student
+    //   return 2;
+    // }
 
     return 0;
 }
@@ -266,8 +320,21 @@ int take_next_course(char *ta_name, Ta *ta_list, Student **stu_list_ptr, char *c
  * names.
  */
 void print_all_queues(Student *stu_list, Course *courses, int num_courses) {
-         //printf("%s: %d in queue\n", var1, var2);
-             //printf("\t%s\n",var3);
+  if(num_courses < 1) { return; }
+  for(int i = 0; i < num_courses; i++) {
+    int waiting_students = 0;
+    Student *head = courses[i].head;
+    while(head){
+      waiting_students++;
+      head = head->next_course;
+    }
+    printf("%s: %d in queue\n", courses[i].code, waiting_students);
+    head = courses[i].head;
+    while(head) {
+      printf("\t%s\n",head->name);
+      head = head->next_course;
+    }
+  }
 }
 
 /*
