@@ -6,6 +6,15 @@
 #define INPUT_BUFFER_SIZE 256
 #define COURSE_CODE_SIZE 7
 
+void *Malloc (int size) {
+  void *ret = malloc(size);
+  if (ret == NULL) {
+    perror("malloc failed");
+    exit(1);
+  }
+  return ret;
+}
+
 /*
  * Return a pointer to the struct student with name stu_name
  * or NULL if no student with this name exists in the stu_list
@@ -59,23 +68,10 @@ void delete_student (Student *student) {
 }
 
 Student *new_student(char *name, Course *course) {
-  Student *new = malloc(sizeof(Student));
-  if (new == NULL) {
-     perror("malloc for new");
-     exit(1);
-  }
-  new->name = malloc(strlen(name));
-  if (new->name == NULL) {
-     perror("malloc for new->name");
-     exit(1);
-  }
+  Student *new = Malloc(sizeof(Student));
+  new->name = Malloc(strlen(name));
   strcpy(new->name, name);
-
-  new->arrival_time = malloc(sizeof(time_t));
-  if (new->arrival_time == NULL) {
-     perror("malloc for new->arrival_time");
-     exit(1);
-  }
+  new->arrival_time = Malloc(sizeof(time_t));
   *(new->arrival_time) = time(NULL);
   new->course = course;
   new->next_overall = NULL;
@@ -99,11 +95,7 @@ int add_student (Student **stu_list_ptr, char *student_name, char *course_code,
       return 2; // course not found
     }
     Course *found_course = find_course(course_array, num_courses, course_code);
-    Student *new_student_ptr = malloc(sizeof(Student));
-    if (new_student_ptr == NULL) {
-       perror("malloc for new_student_ptr");
-       exit(1);
-    }
+    Student *new_student_ptr = Malloc(sizeof(Student));
     *new_student_ptr = *new_student(student_name, found_course);
 
     if (*stu_list_ptr && find_student(*stu_list_ptr, student_name)) {
@@ -442,17 +434,10 @@ int stats_by_course(Student *stu_list, char *course_code, Course *courses, int n
 
 /* Helper function for creating new courses */
 Course *new_course (char *course_code, char *course_desc) {
-  Course *ptr = (Course*) malloc(sizeof(Course));
-  if (ptr == NULL) {
-     perror("malloc for course ptr");
-     exit(1);
-  }
+  Course *ptr = (Course*) Malloc(sizeof(Course));
+
   strcpy(ptr->code, course_code);
-  ptr->description = malloc(INPUT_BUFFER_SIZE);
-  if (ptr->description == NULL) {
-     perror("malloc for ptr->description");
-     exit(1);
-  }
+  ptr->description = Malloc(INPUT_BUFFER_SIZE);
   strcpy(ptr->description, course_desc);
   ptr->head = NULL;
   ptr->tail = NULL;
@@ -483,11 +468,7 @@ int config_course_list(Course **courselist_ptr, char *config_filename) {
 
   if (fgets(input_line, INPUT_BUFFER_SIZE, file) != NULL) { // set the course number from the first line of file
       sscanf(input_line, "%d", &course_num);
-      *courselist_ptr = malloc(course_num * sizeof(Course));
-      if (courselist_ptr == NULL) {
-         perror("malloc for courselist_ptr");
-         exit(1);
-      }
+      *courselist_ptr = Malloc(course_num * sizeof(Course));
       for (int i = 0; i < course_num; i++) { // read in the courses
         if (fgets(input_line, INPUT_BUFFER_SIZE, file) != NULL) {
           sscanf(input_line, "%s %[^\n]s", course_code, course_desc);
