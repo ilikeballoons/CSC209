@@ -12,9 +12,12 @@
  */
 
 char *copy(char *dest, const char *src, int capacity) {
-
-
-    return dest;
+  for (int i = 0; i < capacity; i++) {
+    memset(&(dest[i]), '\0', 1);
+  }
+  memcpy(dest, src, capacity);
+  if(dest[capacity] != '\0') { memset(&dest[capacity], '\0', 1); }
+  return dest;
 }
 
 
