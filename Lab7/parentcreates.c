@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <sys/wait.h>
 
 int main(int argc, char **argv) {
     int i;
@@ -21,6 +22,8 @@ int main(int argc, char **argv) {
       printf("ppid = %d, pid = %d, i = %d\n", getppid(), getpid(), i);
       if (n == 0) {
         exit(0);
+      } else {
+        wait(NULL);
       }
     }
 

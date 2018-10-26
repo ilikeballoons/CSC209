@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <sys/wait.h>
 
 int Fork () {
   int ret = fork();
@@ -26,6 +27,7 @@ int main(int argc, char **argv) {
       n = Fork();
       printf("ppid = %d, pid = %d, i = %d\n", getppid(), getpid(), i);
       if (n != 0) {
+        wait(NULL);
         exit(0);
       }
     }
