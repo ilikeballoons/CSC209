@@ -25,30 +25,39 @@ int main(void) {
       perror("fgets");
       exit(1);
   }
+  
   if(fgets(password, MAXLINE, stdin) == NULL) {
       perror("fgets");
       exit(1);
   }
 
-  int pfd[2];
-  pipe(pfd);
-  //todo: error check
+  int pfd[2], err;
+  if ((err = pipe(pfd)) == -1) {
+    perror("pipe");
+    exit(1);
+  }
 
-  write(pfd[WRITE], user_id, 32);
-  //check
-  write(pfd[WRITE], password, MAX_PASSWORD);
-  //check
+  if((err = write(pfd[WRITE], user_id, MAX_PASSWORD)) < 0) {
+    perror("write");
+    exit(1);
+  }
+
+  if((err = write(pfd[WRITE], password, MAX_PASSWORD)) < 0) {
+    perror("write");
+    exit(1);
+  }
 
   int pid = fork();
-  //fork
   if (pid < 0) {
     perror("fork");
     exit(1);
   }
 
   if (pid > 0) { //parent
-    close(pfd[WRITE]);
     close(pfd[READ]);
+    write(pfd[WRITE], user_id, 32);
+    write(pfd[WRITE], password, MAX_PASSWORD);
+    close(pfd[WRITE]);
     int status;
     if(wait(&status) == -1) {
       perror("wait");
@@ -64,12 +73,9 @@ int main(void) {
         printf(NO_USER);
       }
     }
-  //parent:
-  //close read pipe
-  //wait for chidl to return then print one of the constants based on the return value of validate
 } else if (pid == 0) {
     close(pfd[WRITE]);
-    dup2(STDIN_FILENO, pfd[READ]);
+    dup2(pfd[READ], STDIN_FILENO);
     execl(VALIDATE_EXEC, VALIDATE, NULL);
     close(pfd[READ]);
   }
