@@ -22,21 +22,19 @@ void *Malloc (int size) {
 FreqRecord *get_word(char *word, Node *head, char **file_names) {
   // figure out how many file names there are
   int number_of_files;
-  for(number_of_files = 0; file_names[number_of_files] != NULL; number_of_files++) {
-    //printf("filename: %s\n", file_names[number_of_files]);
-  }
+  for(number_of_files = 0; file_names[number_of_files] != NULL; number_of_files++) {}
   // declare an array of structs the same length as the number of file file_names
   FreqRecord *frequencies = Malloc(number_of_files * sizeof(FreqRecord));
   // iterate through the linked list
   Node *cur = head;
+
   while(cur) {
-    int i;
+    int i = 0;
     if (strcmp(cur->word, word) == 0) {
-      for (i = 0; i < number_of_files; i++) {
+      for (; i < number_of_files; i++) {
         // if you find the word, copy the frequency at that position to the FreqRecord
         frequencies[i].freq = cur->freq[i];
         strncpy(frequencies[i].filename, file_names[i], PATHLENGTH);
-        // strcpy(frequencies[i].filename, file_names[i]);
       }
     }
     if(cur->next) { //advance to the next item in the linkedlist
