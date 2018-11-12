@@ -18,4 +18,12 @@ FreqRecord *get_word(char *word, Node *head, char **file_names);
 void print_freq_records(FreqRecord *frp);
 void run_worker(char *dirname, int in, int out);
 
+FILE *Fopen(char *file_name, char *mode);
+int Close(int fd);
+int Read (int fd, void *buf, size_t nbytes);
+int Write(int fd, const void *buf, size_t nbytes);
+void *Malloc (size_t size);
+
+
+
 #endif /* WORKER_H */

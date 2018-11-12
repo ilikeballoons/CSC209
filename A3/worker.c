@@ -188,7 +188,7 @@ void run_worker(char *dirname, int in, int out) {
   char query_word[MAXWORD];
   char index_file_path[strlen(dirname) + INDEX_STR_LENGTH + 1];
   char filenames_file_path[strlen(dirname) + FILENAMES_STR_LENGTH + 1];
-  char converted_output_file_path[strlen(dirname) + CONVERTED_STR_LENGTH + 1];
+  // char converted_output_file_path[strlen(dirname) + CONVERTED_STR_LENGTH + 1];
 
   strcpy(filenames_file_path, dirname);
   filenames_fp = Fopen(strcat(filenames_file_path, "/filenames"), "r");
@@ -205,8 +205,8 @@ void run_worker(char *dirname, int in, int out) {
   strcat(index_file_path, "/index");
   read_list(index_file_path, filenames_file_path, &head, filenames);
 
-  strcpy(converted_output_file_path, dirname);
-  strcat(converted_output_file_path, "/converted_output.bin");
+  // strcpy(converted_output_file_path, dirname);
+  // strcat(converted_output_file_path, "/converted_output.bin");
 
   filenames[num_of_files] = "\0";
   while(Read(in, query_word, MAXWORD) > 0) {

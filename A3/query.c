@@ -8,6 +8,16 @@
 
 #include "freq_list.h"
 #include "worker.h"
+/* fork with error checking */
+int Fork () {
+  int ret = fork();
+  if (ret < 0) {
+    perror("fork");
+    exit(1);
+  }
+  return ret;
+}
+
 
 /* TODO: replace me with a proper docstring
  */
@@ -67,10 +77,59 @@ int main(int argc, char **argv) {
 
         // Only call run_worker if it is a directory
         // Otherwise ignore it.
-        if (S_ISDIR(sbuf.st_mode)) {
-          printf("directory %d:\t%s\n", i, dp->d_name);
+        //make the master pipe
+        // READ = 0
+        // WRITE = 1
+        int words_fd[2], freqs_fd[2];
+        pipe(words_fd);
+        pipe(freqs_fd);
 
-            //run_worker(path, STDIN_FILENO, STDOUT_FILENO);
+        if (S_ISDIR(sbuf.st_mode)) {
+          // fork
+          int pid = Fork();
+          if (pid < 0) {
+            // parent
+            char query_word[MAXWORD];
+            Close(words_fd[0]);
+            Close(freqs_fd[1]);
+            while(fgets(query_word, MAXWORD, stdin) != 0) {
+              // read a word from STDIN_FILENO
+              size_t len = strlen(query_word);
+              // write that word to output pipe
+              query_word[len] = '\0'; // ensure null termination
+              if((Write(words_fd[1], query_word, len)) != len) {
+                fprintf(stderr, "Failed to write %s to words pipe\n", query_word);
+                exit(1);
+              }
+              // read all freqrecords that get written from the input pipe to STDOUT_FILENO
+              // do something with the freqrecords
+              // close word write end
+              Close(words_fd[1]);
+              // if all children exit, close the freqrecords
+
+            }
+            close(words_fd[1]);
+            // when all child write ends are closed, close master read end
+
+          } else if (pid == 0) {
+            // child
+            Close(words_fd[1]);
+            Close(freqs_fd[0]);
+            char dir_path[PATHLENGTH];
+            strcpy(dir_path, "./");
+            strncat(dir_path, path, PATHLENGTH - strlen(path) - 2);
+            printf("path %d:\t%s\n", i, dir_path);
+            // reads words from input pipe
+            // calls run_worker(childs_path, input_pipe, output_pipe);
+            run_worker(dir_path, words_fd[0], freqs_fd[1]);
+            // when master process write end is closed, closed write and read ends
+            Close(words_fd[0]);
+            Close(freqs_fd[1]);
+            exit(0);
+          }
+          i++;
+          // printf("directory %d:\t%s\n", i, dir_path);
+
         }
     }
 
