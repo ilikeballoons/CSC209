@@ -162,7 +162,7 @@ void run_worker(char *dirname, int in, int out) {
   read_list(index_file_path, filenames_file_path, &head, filenames);
 
   filenames[num_of_files] = "\0";
-  while(Read(in, query_word, MAXWORD) > 0) {
+  while(Read(in, query_word, MAXWORD) >= 0) {
     query_word[strlen(query_word) - 1] = '\0'; //remove \n character
     frequencies = get_word(query_word, head, filenames);
     for (int i = 0; i < num_of_files; i++) {
@@ -171,8 +171,6 @@ void run_worker(char *dirname, int in, int out) {
       }
     }
   }
-  Close(in);
   Write(out, get_empty_freqrecord(), sizeof(FreqRecord));
-  Close(out);
   return;
 }

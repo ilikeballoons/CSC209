@@ -87,9 +87,10 @@ int main(int argc, char **argv) {
         if (S_ISDIR(sbuf.st_mode)) {
           // fork
           int pid = Fork();
-          if (pid < 0) {
+          if (pid > 0) {
             // parent
             char query_word[MAXWORD];
+            FreqRecord *test = Malloc(sizeof(FreqRecord));
             Close(words_fd[0]);
             Close(freqs_fd[1]);
             while(fgets(query_word, MAXWORD, stdin) != 0) {
@@ -101,15 +102,18 @@ int main(int argc, char **argv) {
                 fprintf(stderr, "Failed to write %s to words pipe\n", query_word);
                 exit(1);
               }
-              // read all freqrecords that get written from the input pipe to STDOUT_FILENO
+
+              Read(freqs_fd[0], test, sizeof(FreqRecord));
               // do something with the freqrecords
+              printf("Filename: %s\tFrequency: %d\n", test->filename, test->freq);
+              // read all freqrecords that get written from the input pipe to STDOUT_FILENO
               // close word write end
-              Close(words_fd[1]);
               // if all children exit, close the freqrecords
 
             }
-            close(words_fd[1]);
             // when all child write ends are closed, close master read end
+            Close(words_fd[1]);
+            Close(freqs_fd[0]);
 
           } else if (pid == 0) {
             // child
