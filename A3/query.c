@@ -19,7 +19,7 @@
 * in the index memory model. The frequencies and filenames will be printed to stdout
 * one for each file where the word is found.
 */
-int main(int argc, char **argv) {
+int main (int argc, char **argv) {
   char ch;
   char path[PATHLENGTH];
   char *startdir = ".";
@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
   int pid;
   for (int i = 0; i < num_children; i++) { // make a child for each subdir
     pid = Fork();
-    if (pid == 0){ // CHILD
+    if (pid == 0) { // CHILD
       for (int j = 0; j < num_children; j++) {
         Close(words_fd[2*j+1]); //word writes
         Close(freqs_fd[2*j]); // freq read
@@ -123,7 +123,7 @@ int main(int argc, char **argv) {
   FreqRecord *child_freqr = Malloc(sizeof(FreqRecord));
   int count;
 
-  while(fgets(query_word, MAXWORD, stdin) != 0) {
+  while (fgets(query_word, MAXWORD, stdin) != 0) {
     count = 0;
     child_freqr = get_empty_freqrecord();
 
@@ -135,13 +135,13 @@ int main(int argc, char **argv) {
     query_word[len - 1] = '\0'; //remove \n character
 
     for (int i = 0; i < num_children; i++) {
-      if((Write(words_fd[2*i+1], query_word, len)) != len) {
+      if ((Write(words_fd[2*i+1], query_word, len)) != len) {
         fprintf(stderr, "Failed to write %s to words pipe\n", query_word);
         exit(1);
       }
       do {
         Read(freqs_fd[2*i], child_freqr, sizeof(FreqRecord));
-        if(child_freqr->freq > 0) {
+        if (child_freqr->freq > 0) {
           insert(master, child_freqr, &count);
         }
       } while (child_freqr->freq > 0);
@@ -163,7 +163,7 @@ int main(int argc, char **argv) {
   int status;
   while ((pid = wait(&status)) != -1) {} // wait for all children to exit
 
-  if (closedir(dirp) < 0){
+  if (closedir(dirp) < 0) {
     perror("closedir");
   }
 
