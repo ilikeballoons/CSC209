@@ -96,21 +96,20 @@ int count_lines(FILE *fp) {
 
 /*
 * Determines where in the array array to insert child, based on frequency number
-* Takes an array of FreqRecord*, a FreqRecord* child, and the number of elements
-* currently in the array array.
-* Returns the index of where to insert child, or -1 if it shouldn't insert at all
+* Takes an array of FreqRecord*, a FreqRecord* child
+* Returns the index of where to insert child into an array, or -1 to not insert at all
 */
-int determine_insert_pos(FreqRecord *array, FreqRecord *child, int num_elements) {
+int determine_insert_pos(FreqRecord *array, FreqRecord *child, int array_size) {
   int i;
-  for (i = 0; i < num_elements; i++) {
-    if(child->freq >= array[i].freq) {
-      return i; // insert value into middle of array
+  if (array_size < MAXRECORDS && child->freq > array[array_size - 1].freq) {
+    for (i = 0; i < array_size - 1; i++) {
+      if(child->freq >= array[i].freq) {
+        return i;
+      }
     }
+    return array_size;
   }
-  if (num_elements < MAXRECORDS) {
-    return i; // insert at the end of the array if it has space
-  }
-  return -1; // do not insert value
+  return -1;
 }
 
 /*
@@ -119,16 +118,16 @@ int determine_insert_pos(FreqRecord *array, FreqRecord *child, int num_elements)
 * currently in the array.
 */
 void insert(FreqRecord *array, FreqRecord *child_freqr,  int *num_elements) {
-  int pos;
-  if ((pos = determine_insert_pos(array, child_freqr, *num_elements)) > -1
-&& child_freqr->freq > 0) {
-      for(int i = *num_elements; i >= pos; i--) {
-        array[i+1] = array[i];
-      }
-      array[pos] = *child_freqr;
-      *num_elements += 1;
+  int insert_pos = determine_insert_pos(array, child_freqr, *num_elements);
+  if (insert_pos == -1) {
+    return;
   }
-  return;
+
+  for(int i = *num_elements; i >= insert_pos; i--) {
+    array[i+1] = array[i];
+  }
+  array[insert_pos] = *child_freqr;
+  *num_elements += 1;
 }
 
 /*
@@ -213,7 +212,9 @@ void run_worker(char *dirname, int in, int out) {
   while(Read(in, query_word, MAXWORD) > 0) {
     frequencies = get_word(query_word, head, filenames);
     for (int i = 0; i < num_of_files; i++) {
-      if(frequencies[i].freq > 0 && frequencies[i].filename[0] == '.' && frequencies[i].filename[1] == '/') {
+      if(frequencies[i].freq > 0
+        && frequencies[i].filename[0] == '.'
+        && frequencies[i].filename[1] == '/') {
         Write(out, &(frequencies[i]), sizeof(FreqRecord));
       }
     }

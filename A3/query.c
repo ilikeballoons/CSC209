@@ -121,9 +121,10 @@ int main(int argc, char **argv) {
   char query_word[MAXWORD];
   FreqRecord *master = Malloc(MAXRECORDS * sizeof(FreqRecord));
   FreqRecord *child_freqr = Malloc(sizeof(FreqRecord));
+  int count;
 
   while(fgets(query_word, MAXWORD, stdin) != 0) {
-    int count = 0;
+    count = 0;
     child_freqr = get_empty_freqrecord();
 
     for (int i = 0; i < MAXRECORDS; i++) {
@@ -140,7 +141,9 @@ int main(int argc, char **argv) {
       }
       do {
         Read(freqs_fd[2*i], child_freqr, sizeof(FreqRecord));
-        insert(master, child_freqr, &count);
+        if(child_freqr->freq > 0) {
+          insert(master, child_freqr, &count);
+        }
       } while (child_freqr->freq > 0);
     }
     print_freq_records(master);
