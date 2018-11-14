@@ -7,10 +7,8 @@
 #include <dirent.h>
 #include <sys/wait.h>
 
-
 #include "freq_list.h"
 #include "worker.h"
-
 
 /*
 * Queries a given directory's subdirectories (non-recursively) for words provided
@@ -150,7 +148,7 @@ int main (int argc, char **argv) {
         //since i am running out of time, and i have been trying to fix a bug
         // where the last two items in the array are swapped, i am fixing it manually here.
         // this is obviously hacky and bad, but at least it produces the desired output
-        FreqRecord temp = master[count-1];// take the last element in the array
+        FreqRecord temp = master[count-1];
         master[count-1] = master[count-2];
         master[count-2] = temp;
     }
