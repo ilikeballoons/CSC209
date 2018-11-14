@@ -75,12 +75,21 @@ int main(int argc, char **argv) {
       exit(1);
     }
 
-    if (S_ISDIR(sbuf.st_mode) && num_children <= MAXWORKERS) { // this block will execute once per subdirectory
+    if (S_ISDIR(sbuf.st_mode)) { // this block will execute once per subdirectory
       paths[num_children] = Malloc(PATHLENGTH);
       strcpy(paths[num_children], "./");
       strncat(paths[num_children], path, PATHLENGTH - strlen(path) - 2);
       num_children++;
+      if (num_children > MAXWORKERS) {
+        fprintf(stderr, "Too many subdirectories!\n");
+        exit(1);
+      }
     }
+  }
+
+  if (num_children == 0) {
+    fprintf(stderr, "No subdirectories found\n");
+    exit(1);
   }
 
   int words_fd[2 * num_children], freqs_fd[2 *num_children];
@@ -121,8 +130,8 @@ int main(int argc, char **argv) {
       master[i] = *get_empty_freqrecord();
     }
 
-    size_t len = strlen(query_word);
-    query_word[len] = '\0'; // ensure null termination
+    int len = (int)strlen(query_word);
+    query_word[len - 1] = '\0'; //remove \n character
 
     for (int i = 0; i < num_children; i++) {
       if((Write(words_fd[2*i+1], query_word, len)) != len) {
@@ -131,9 +140,7 @@ int main(int argc, char **argv) {
       }
       do {
         Read(freqs_fd[2*i], child_freqr, sizeof(FreqRecord));
-        if(child_freqr->freq > 0) {
-          insert(master, child_freqr, &count);
-        }
+        insert(master, child_freqr, &count);
       } while (child_freqr->freq > 0);
     }
     print_freq_records(master);
@@ -143,7 +150,7 @@ int main(int argc, char **argv) {
   }
 
   int status;
-  while ((pid = waitpid(-1, &status, 0)) != -1) // wait for all children to exit
+  while ((pid = wait(&status)) != -1) {} // wait for all children to exit
 
   if (closedir(dirp) < 0){
     perror("closedir");

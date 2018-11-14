@@ -10,13 +10,12 @@
 
 #define FILENAMES_STR_LENGTH 10
 #define INDEX_STR_LENGTH 6
-#define CONVERTED_STR_LENGTH 21
 
 // initialize global file number counter with -1 to indicate it needs to be calculated
 int num_of_files = -1;
 
 /* fork with error checking */
-int Fork () {
+int Fork() {
   int ret = fork();
   if (ret < 0) {
     perror("fork");
@@ -47,7 +46,7 @@ int Close(int fd) {
 }
 
 /* read with error checking */
-int Read (int fd, void *buf, size_t nbytes) {
+int Read(int fd, void *buf, size_t nbytes) {
   int ret = read(fd, buf, nbytes);
   if (ret == -1) {
     perror("Read failed");
@@ -67,7 +66,7 @@ int Write(int fd, const void *buf, size_t nbytes) {
 }
 
 /* malloc with error checking */
-void *Malloc (size_t size) {
+void *Malloc(size_t size) {
   void *ret = malloc(size);
   if (ret == NULL) {
     perror("malloc failed");
@@ -77,7 +76,7 @@ void *Malloc (size_t size) {
 }
 
 /* Returns an empty FreqRecord struct */
-FreqRecord *get_empty_freqrecord () {
+FreqRecord *get_empty_freqrecord() {
   FreqRecord *empty_freq = Malloc(sizeof(FreqRecord));
   empty_freq->freq = 0;
   empty_freq->filename[0] = '\0';
@@ -85,7 +84,7 @@ FreqRecord *get_empty_freqrecord () {
 }
 
 /* Returns the number of lines in a file */
-int count_lines (FILE *fp) {
+int count_lines(FILE *fp) {
   int lines = 0;
   char line[MAXLINE];
 
@@ -121,12 +120,13 @@ int determine_insert_pos(FreqRecord *array, FreqRecord *child, int num_elements)
 */
 void insert(FreqRecord *array, FreqRecord *child_freqr,  int *num_elements) {
   int pos;
-  if ((pos = determine_insert_pos(array, child_freqr, *num_elements)) > -1) {
+  if ((pos = determine_insert_pos(array, child_freqr, *num_elements)) > -1
+&& child_freqr->freq > 0) {
       for(int i = *num_elements; i >= pos; i--) {
         array[i+1] = array[i];
       }
       array[pos] = *child_freqr;
-      *num_elements+= 1;
+      *num_elements += 1;
   }
   return;
 }
@@ -145,6 +145,7 @@ FreqRecord *get_word(char *word, Node *head, char **file_names) {
   }
   // declare an array of structs the same length as the number of file file_names
   FreqRecord *frequencies = Malloc(num_of_files * sizeof(FreqRecord));
+
   // iterate through the linked list
   Node *cur = head;
 
@@ -165,6 +166,7 @@ FreqRecord *get_word(char *word, Node *head, char **file_names) {
       cur = NULL;
     }
   }
+
   return frequencies;
 }
 
@@ -188,9 +190,8 @@ void print_freq_records(FreqRecord *frp) {
 * end of data.
 */
 void run_worker(char *dirname, int in, int out) {
-  Node *head = NULL;
+  Node *head = Malloc(sizeof(Node));
   FILE *filenames_fp;
-  FreqRecord *frequencies;
   char query_word[MAXWORD];
   char index_file_path[strlen(dirname) + INDEX_STR_LENGTH + 1];
   char filenames_file_path[strlen(dirname) + FILENAMES_STR_LENGTH + 1];
@@ -202,21 +203,23 @@ void run_worker(char *dirname, int in, int out) {
     perror("fclose for names file");
     exit(1);
   }
+  FreqRecord *frequencies = Malloc(num_of_files * sizeof(FreqRecord));
   char *filenames[num_of_files];
   strcpy(index_file_path, dirname);
   strcat(index_file_path, "/index");
   read_list(index_file_path, filenames_file_path, &head, filenames);
   filenames[num_of_files] = "\0";
+
   while(Read(in, query_word, MAXWORD) > 0) {
-    query_word[strlen(query_word) - 1] = '\0'; //remove \n character
     frequencies = get_word(query_word, head, filenames);
     for (int i = 0; i < num_of_files; i++) {
-      if(frequencies[i].freq > 0) {
+      if(frequencies[i].freq > 0 && frequencies[i].filename[0] == '.' && frequencies[i].filename[1] == '/') {
         Write(out, &(frequencies[i]), sizeof(FreqRecord));
       }
     }
     Write(out, get_empty_freqrecord(), sizeof(FreqRecord));
   }
+
   Close(out);
   exit(0);
 }
