@@ -18,6 +18,7 @@ int num_of_files = -1;
 FILE *Fopen(char *file_name, char *mode) {
   FILE *ret = fopen(file_name, mode);
   if (ret == NULL) {
+    fprintf(stderr, "couldn't find %s\n", file_name);
     perror("Fopen");
     kill(getppid(), 9);
     exit(1);
