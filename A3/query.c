@@ -5,6 +5,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <dirent.h>
+#include <sys/wait.h>
+
 
 #include "freq_list.h"
 #include "worker.h"
@@ -17,7 +19,6 @@ int Fork () {
   }
   return ret;
 }
-
 
 /* TODO: replace me with a proper docstring
 */
@@ -92,9 +93,11 @@ int main(int argc, char **argv) {
     pipe(&freqs_fd[2*i]);
   }
 
+  int pid;
   for (int i = 0; i < num_children; i++) { // make a child for each subdir
-    int pid = Fork();
+    pid = Fork();
     if (pid == 0){ // CHILD
+      printf("%d\n", i);
       Close(words_fd[2*i+1]);
       Close(freqs_fd[2*i]);
       run_worker(paths[i], words_fd[2*i], freqs_fd[2*i+1]);
@@ -103,11 +106,18 @@ int main(int argc, char **argv) {
       exit(0);
     }
   }
+
   Close(words_fd[0]);
   Close(freqs_fd[1]);
   char query_word[MAXWORD];
+  FreqRecord *master = Malloc(MAXRECORDS * sizeof(FreqRecord));
+  FreqRecord *child_freqr = Malloc(sizeof(FreqRecord));
   while(fgets(query_word, MAXWORD, stdin) != 0) {
-    FreqRecord *test = get_empty_freqrecord();
+    for (int i = 0; i < MAXRECORDS; i++) {
+      master[i] = *get_empty_freqrecord();
+    }
+    child_freqr = get_empty_freqrecord();
+    int count = 0;
     size_t len = strlen(query_word);
     query_word[len] = '\0'; // ensure null termination
 
@@ -117,28 +127,27 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Failed to write %s to words pipe\n", query_word);
         exit(1);
       }
-    }
-    for(int i = 0; i < num_children; i++) {
       do {
-        Read(freqs_fd[2*i], test, sizeof(FreqRecord));
-        // array building goes here
-        if(test->freq > 0) {
-          printf("Filename:%s|Frequency: %d|\n", test->filename, test->freq);
+        Read(freqs_fd[2*i], child_freqr, sizeof(FreqRecord));
+        if(child_freqr->freq > 0) {
+          insert(master, child_freqr, &count);
         }
-      } while (test->freq > 0);
+      } while (child_freqr->freq > 0);
     }
+    print_freq_records(master);
   }
   for (int i = 0; i < num_children; i++) {
     Close(words_fd[2*i+1]);
     Close(freqs_fd[2*i]);
   }
+  // int status;
+  // while ((pid = waitpid(-1, &status, 0)) != -1) {
+  //   printf("Process %d terminated\n", pid);
+  // }
 
-
-  if (closedir(dirp) < 0)
-  perror("closedir");
-
-  for(int i = 0; i < num_children; i++) {
-    free(paths[num_children]);
+  if (closedir(dirp) < 0){
+    perror("closedir");
   }
+
   return 0;
 }

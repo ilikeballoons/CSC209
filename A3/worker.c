@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <dirent.h>
+#include <signal.h>
 
 #include "freq_list.h"
 #include "worker.h"
@@ -18,6 +19,7 @@ FILE *Fopen(char *file_name, char *mode) {
   FILE *ret = fopen(file_name, mode);
   if (ret == NULL) {
     perror("Fopen");
+    kill(getppid(), 9);
     exit(1);
   }
   return ret;
@@ -80,6 +82,31 @@ int count_lines (FILE *fp) {
     lines++;
   }
   return lines;
+}
+
+int determine_insert_pos(FreqRecord *array, FreqRecord *child, int num_elements) {
+  int i;
+  for (i = 0; i < num_elements; i++) {
+    if(child->freq >= array[i].freq) {
+      return i; // insert value into middle of array
+    }
+  }
+  if (num_elements < MAXRECORDS) {
+    return i; // insert at the end of the array if it has space
+  }
+  return -1; // do not insert value
+}
+
+void insert(FreqRecord *array, FreqRecord *child_freqr,  int *num_elements) {
+  int pos;
+  if ((pos = determine_insert_pos(array, child_freqr, *num_elements)) > -1) {
+      for(int i = *num_elements; i >= pos; i--) {
+        array[i+1] = array[i];
+      }
+      array[pos] = *child_freqr;
+      *num_elements+= 1;
+  }
+  return;
 }
 
 /*

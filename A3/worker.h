@@ -18,6 +18,8 @@ FreqRecord *get_word(char *word, Node *head, char **file_names);
 void print_freq_records(FreqRecord *frp);
 void run_worker(char *dirname, int in, int out);
 
+int determine_insert_pos(FreqRecord *array, FreqRecord *child, int num_elements);
+void insert(FreqRecord *array, FreqRecord *child_freqr,  int *num_elements);
 FreqRecord *get_empty_freqrecord ();
 FILE *Fopen(char *file_name, char *mode);
 int Close(int fd);
