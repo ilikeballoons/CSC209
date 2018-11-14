@@ -101,6 +101,8 @@ int count_lines(FILE *fp) {
 */
 int determine_insert_pos(FreqRecord *array, FreqRecord *child, int array_size) {
   int i;
+  // if there are fewer than maxrecord elements in the array and the frequency of the
+  // child is greater than the last element of the array
   if (array_size < MAXRECORDS && child->freq > array[array_size - 1].freq) {
     for (i = 0; i < array_size - 1; i++) {
       if(child->freq >= array[i].freq) {

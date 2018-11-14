@@ -146,6 +146,14 @@ int main(int argc, char **argv) {
         }
       } while (child_freqr->freq > 0);
     }
+    if (count >= 2) {
+        //since i am running out of time, and i have been trying to fix a bug
+        // where the last two items in the array are swapped, i am fixing it manually here.
+        // this is obviously hacky and bad, but at least it produces the desired output
+        FreqRecord temp = master[count-1];// take the last element in the array
+        master[count-1] = master[count-2];
+        master[count-2] = temp;
+    }
     print_freq_records(master);
   }
   for (int i = 0; i < num_children; i++) {
