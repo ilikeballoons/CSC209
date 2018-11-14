@@ -10,17 +10,14 @@
 
 #include "freq_list.h"
 #include "worker.h"
-/* fork with error checking */
-int Fork () {
-  int ret = fork();
-  if (ret < 0) {
-    perror("fork");
-    exit(1);
-  }
-  return ret;
-}
 
-/* TODO: replace me with a proper docstring
+
+/*
+* Queries a given directory's subdirectories (non-recursively) for words provided
+* by the user through stdin. After loading the subdirectories' index and filename
+* files into memory, the user inputs a single word which will then be looked up
+* in the index memory model. The frequencies and filenames will be printed to stdout
+* one for each file where the word is found.
 */
 int main(int argc, char **argv) {
   char ch;
@@ -82,7 +79,6 @@ int main(int argc, char **argv) {
       paths[num_children] = Malloc(PATHLENGTH);
       strcpy(paths[num_children], "./");
       strncat(paths[num_children], path, PATHLENGTH - strlen(path) - 2);
-
       num_children++;
     }
   }
@@ -97,31 +93,37 @@ int main(int argc, char **argv) {
   for (int i = 0; i < num_children; i++) { // make a child for each subdir
     pid = Fork();
     if (pid == 0){ // CHILD
-      printf("%d\n", i);
-      Close(words_fd[2*i+1]);
-      Close(freqs_fd[2*i]);
+      for (int j = 0; j < num_children; j++) {
+        Close(words_fd[2*j+1]); //word writes
+        Close(freqs_fd[2*j]); // freq read
+        if (j != i) {
+          Close(words_fd[2*j]); // word read
+          Close(freqs_fd[2*j+1]); //freq write
+        }
+      }
       run_worker(paths[i], words_fd[2*i], freqs_fd[2*i+1]);
-      Close(words_fd[2*i]);
-      Close(freqs_fd[2*i+1]);
-      exit(0);
     }
   }
-
-  Close(words_fd[0]);
-  Close(freqs_fd[1]);
+  // EVERYTHING BELOW THIS IS PARENT
+  for (int i = 0; i < num_children; i++) {
+      Close(words_fd[2*i]); // word read
+      Close(freqs_fd[2*i+1]); //freq write
+  }
   char query_word[MAXWORD];
   FreqRecord *master = Malloc(MAXRECORDS * sizeof(FreqRecord));
   FreqRecord *child_freqr = Malloc(sizeof(FreqRecord));
+
   while(fgets(query_word, MAXWORD, stdin) != 0) {
+    int count = 0;
+    child_freqr = get_empty_freqrecord();
+
     for (int i = 0; i < MAXRECORDS; i++) {
       master[i] = *get_empty_freqrecord();
     }
-    child_freqr = get_empty_freqrecord();
-    int count = 0;
+
     size_t len = strlen(query_word);
     query_word[len] = '\0'; // ensure null termination
 
-    // write that word to output pipe
     for (int i = 0; i < num_children; i++) {
       if((Write(words_fd[2*i+1], query_word, len)) != len) {
         fprintf(stderr, "Failed to write %s to words pipe\n", query_word);
@@ -137,13 +139,11 @@ int main(int argc, char **argv) {
     print_freq_records(master);
   }
   for (int i = 0; i < num_children; i++) {
-    Close(words_fd[2*i+1]);
-    Close(freqs_fd[2*i]);
+    Close(words_fd[2*i+1]); // close all write ends, trigerring children to exit
   }
-  // int status;
-  // while ((pid = waitpid(-1, &status, 0)) != -1) {
-  //   printf("Process %d terminated\n", pid);
-  // }
+
+  int status;
+  while ((pid = waitpid(-1, &status, 0)) != -1) // wait for all children to exit
 
   if (closedir(dirp) < 0){
     perror("closedir");

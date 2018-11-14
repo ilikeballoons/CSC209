@@ -12,7 +12,18 @@
 #define INDEX_STR_LENGTH 6
 #define CONVERTED_STR_LENGTH 21
 
+// initialize global file number counter with -1 to indicate it needs to be calculated
 int num_of_files = -1;
+
+/* fork with error checking */
+int Fork () {
+  int ret = fork();
+  if (ret < 0) {
+    perror("fork");
+    exit(1);
+  }
+  return ret;
+}
 
 /* fopen with error checking */
 FILE *Fopen(char *file_name, char *mode) {
@@ -20,7 +31,6 @@ FILE *Fopen(char *file_name, char *mode) {
   if (ret == NULL) {
     fprintf(stderr, "couldn't find %s\n", file_name);
     perror("Fopen");
-    kill(getppid(), 9);
     exit(1);
   }
   return ret;
@@ -85,6 +95,12 @@ int count_lines (FILE *fp) {
   return lines;
 }
 
+/*
+* Determines where in the array array to insert child, based on frequency number
+* Takes an array of FreqRecord*, a FreqRecord* child, and the number of elements
+* currently in the array array.
+* Returns the index of where to insert child, or -1 if it shouldn't insert at all
+*/
 int determine_insert_pos(FreqRecord *array, FreqRecord *child, int num_elements) {
   int i;
   for (i = 0; i < num_elements; i++) {
@@ -98,6 +114,11 @@ int determine_insert_pos(FreqRecord *array, FreqRecord *child, int num_elements)
   return -1; // do not insert value
 }
 
+/*
+* Inserts child_freqr into array
+* Takes the array to insert into, the child to insert, and the number of elements
+* currently in the array.
+*/
 void insert(FreqRecord *array, FreqRecord *child_freqr,  int *num_elements) {
   int pos;
   if ((pos = determine_insert_pos(array, child_freqr, *num_elements)) > -1) {
@@ -181,14 +202,10 @@ void run_worker(char *dirname, int in, int out) {
     perror("fclose for names file");
     exit(1);
   }
-
   char *filenames[num_of_files];
-
   strcpy(index_file_path, dirname);
   strcat(index_file_path, "/index");
-
   read_list(index_file_path, filenames_file_path, &head, filenames);
-
   filenames[num_of_files] = "\0";
   while(Read(in, query_word, MAXWORD) > 0) {
     query_word[strlen(query_word) - 1] = '\0'; //remove \n character
@@ -200,5 +217,6 @@ void run_worker(char *dirname, int in, int out) {
     }
     Write(out, get_empty_freqrecord(), sizeof(FreqRecord));
   }
-  return;
+  Close(out);
+  exit(0);
 }
