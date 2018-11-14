@@ -37,7 +37,7 @@ int Close(int fd) {
 int Read (int fd, void *buf, size_t nbytes) {
   int ret = read(fd, buf, nbytes);
   if (ret == -1) {
-    perror("read failed");
+    perror("Read failed");
     exit(1);
   }
   return ret;
@@ -67,7 +67,7 @@ void *Malloc (size_t size) {
 FreqRecord *get_empty_freqrecord () {
   FreqRecord *empty_freq = Malloc(sizeof(FreqRecord));
   empty_freq->freq = 0;
-  strcpy(empty_freq->filename, "\0");
+  empty_freq->filename[0] = '\0';
   return empty_freq;
 }
 
@@ -148,7 +148,6 @@ void run_worker(char *dirname, int in, int out) {
 
   strcpy(filenames_file_path, dirname);
   filenames_fp = Fopen(strcat(filenames_file_path, "/filenames"), "r");
-
   num_of_files = count_lines(filenames_fp);
   if (fclose(filenames_fp) != 0) {
     perror("fclose for names file");
@@ -159,10 +158,11 @@ void run_worker(char *dirname, int in, int out) {
 
   strcpy(index_file_path, dirname);
   strcat(index_file_path, "/index");
+
   read_list(index_file_path, filenames_file_path, &head, filenames);
 
   filenames[num_of_files] = "\0";
-  while(Read(in, query_word, MAXWORD) >= 0) {
+  while(Read(in, query_word, MAXWORD) > 0) {
     query_word[strlen(query_word) - 1] = '\0'; //remove \n character
     frequencies = get_word(query_word, head, filenames);
     for (int i = 0; i < num_of_files; i++) {
@@ -170,7 +170,7 @@ void run_worker(char *dirname, int in, int out) {
         Write(out, &(frequencies[i]), sizeof(FreqRecord));
       }
     }
+    Write(out, get_empty_freqrecord(), sizeof(FreqRecord));
   }
-  Write(out, get_empty_freqrecord(), sizeof(FreqRecord));
   return;
 }
