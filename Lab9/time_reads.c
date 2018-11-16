@@ -16,7 +16,8 @@
 long num_reads, seconds;
 
 void handler(int code) {
-  printf(MESSAGE, num_reads, seconds);
+  fprintf(stderr, "%ld reads were done in %ld seconds.\n",  num_reads, seconds);
+  exit(0);
 }
 /* The first command-line argument is the number of seconds to set a timer to run.
  * The second argument is the name of a binary file containing 100 ints.
@@ -30,6 +31,7 @@ int main(int argc, char **argv) {
     newact.sa_handler = handler;
     newact.sa_flags = 0;
     sigemptyset(&newact.sa_mask);
+    sigaddset(&newact.sa_mask, SIGPROF);
     sigaction(SIGPROF, &newact, NULL);
 
     if (argc != 3) {
@@ -38,10 +40,10 @@ int main(int argc, char **argv) {
     }
     seconds = strtol(argv[1], NULL, 10);
 
-    timer.it_value.tv_sec = 0;
-    timer.it_value.tv_usec = (time_t)seconds * 1000000;
+    timer.it_value.tv_sec = seconds;
+    timer.it_value.tv_usec = 0;
     timer.it_interval.tv_sec = 0;
-    timer.it_interval.tv_usec = (time_t)seconds * 1000000;
+    timer.it_interval.tv_usec = 0;
 
     setitimer(ITIMER_PROF, &timer, NULL);
 
@@ -66,7 +68,7 @@ int main(int argc, char **argv) {
         exit(1);
       }
       num_reads++;
-      fprintf(stderr, "%d\n", num);
+     // fprintf(stderr, "%d\n", num);
     }
     return 1; // something is wrong if we ever get here!
 }
