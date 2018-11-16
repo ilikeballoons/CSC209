@@ -16,7 +16,7 @@
 long num_reads, seconds;
 
 void handler(int code) {
-  fprintf(stderr, MESSAGE, num_reads, seconds);
+  printf(MESSAGE, num_reads, seconds);
 }
 /* The first command-line argument is the number of seconds to set a timer to run.
  * The second argument is the name of a binary file containing 100 ints.
@@ -38,15 +38,12 @@ int main(int argc, char **argv) {
     }
     seconds = strtol(argv[1], NULL, 10);
 
-    timer.it_value.tv_sec = seconds;
-    timer.it_value.tv_usec = 0;// (int)seconds * 1000000;
-    timer.it_interval.tv_sec = seconds;
-    timer.it_interval.tv_usec = 0;//(int)seconds * 1000000;
+    timer.it_value.tv_sec = 0;
+    timer.it_value.tv_usec = (time_t)seconds * 1000000;
+    timer.it_interval.tv_sec = 0;
+    timer.it_interval.tv_usec = (time_t)seconds * 1000000;
 
-    if(setitimer(ITIMER_PROF, &timer, NULL) == -1) {
-        perror("setitimer");
-        exit(1);
-    }
+    setitimer(ITIMER_PROF, &timer, NULL);
 
     FILE *fp;
     if ((fp = fopen(argv[2], "r")) == NULL) {
@@ -70,7 +67,6 @@ int main(int argc, char **argv) {
       }
       num_reads++;
       fprintf(stderr, "%d\n", num);
-      sleep(1);
     }
     return 1; // something is wrong if we ever get here!
 }
