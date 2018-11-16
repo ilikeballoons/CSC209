@@ -11,7 +11,7 @@
 /* Message to print in the signal handling function. */
 #define MESSAGE "%ld reads were done in %ld seconds.\n"
 
-/* Global variables to store number of read operations and seconds elapsed. 
+/* Global variables to store number of read operations and seconds elapsed.
  */
 long num_reads, seconds;
 
@@ -38,10 +38,18 @@ int main(int argc, char **argv) {
      * and print it to stderr.
      */
     for (;;) {
-
-
-
-
+      int seek_loc = random() % 100;
+      int num, err_flag;
+      if ((err_flag = fseek(fp, seek_loc * sizeof(int), SEEK_SET)) != 0) {
+        perror("fseek");
+        exit(1);
+      }
+      if((err_flag = fread(&num, sizeof(int), 1, fp)) != 1) {
+        perror("fread");
+        exit(1);
+      }
+      fprintf(stderr, "%d\n", num);
+      sleep(1);
     }
     return 1; // something is wrong if we ever get here!
 }
