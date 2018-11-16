@@ -15,13 +15,21 @@
  */
 long num_reads, seconds;
 
-
+void handler(int code) {
+  fprintf(stderr, "Signal received, captain!\n");
+}
 /* The first command-line argument is the number of seconds to set a timer to run.
  * The second argument is the name of a binary file containing 100 ints.
  * Assume both of these arguments are correct.
  */
 
 int main(int argc, char **argv) {
+    struct sigaction newact;
+    newact.sa_handler = handler;
+    newact.sa_flags = 0;
+    sigemptyset(&newact.sa_mask);
+    sigaction(SIGPROF, &newact, NULL);
+
     if (argc != 3) {
         fprintf(stderr, "Usage: time_reads s filename\n");
         exit(1);
