@@ -39,13 +39,16 @@ int main(int argc, char **argv) {
     seconds = strtol(argv[1], NULL, 10);
     struct itimerval timer;
     timer.it_value.tv_sec = (time_t)seconds;
-    timer.it_value.tv_usec = timer.it_value.tv_sec * 1000000;
-    timer.it_interval = timer.it_value;
+    timer.it_value.tv_usec = 0;
+    timer.it_interval.tv_sec = (time_t)seconds;
+    timer.it_interval.tv_usec = 0;
 
-    if(setitimer(ITIMER_PROF, &timer, NULL) == -1) {
-      perror("setitimer");
-      exit(1);
-    }
+    setitimer(ITIMER_PROF, &timer, NULL);
+
+    // if(setitimer(ITIMER_PROF, &timer, NULL) == -1) {
+    //   perror("setitimer");
+    //   exit(1);
+    // }
 
 
     FILE *fp;
