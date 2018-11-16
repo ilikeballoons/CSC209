@@ -16,7 +16,7 @@
 long num_reads, seconds;
 
 void handler(int code) {
-  fprintf(stderr, "Signal received, captain!\n");
+  fprintf(stderr, "Signal %d received, captain!\n", code);
 }
 /* The first command-line argument is the number of seconds to set a timer to run.
  * The second argument is the name of a binary file containing 100 ints.
@@ -30,11 +30,23 @@ int main(int argc, char **argv) {
     sigemptyset(&newact.sa_mask);
     sigaction(SIGPROF, &newact, NULL);
 
+
+
     if (argc != 3) {
         fprintf(stderr, "Usage: time_reads s filename\n");
         exit(1);
     }
     seconds = strtol(argv[1], NULL, 10);
+    struct itimerval timer;
+    timer.it_value.tv_sec = (time_t)seconds;
+    timer.it_value.tv_usec = timer.it_value.tv_sec * 1000000;
+    timer.it_interval = timer.it_value;
+
+    if(setitimer(ITIMER_PROF, &timer, NULL) == -1) {
+      perror("setitimer");
+      exit(1);
+    }
+
 
     FILE *fp;
     if ((fp = fopen(argv[2], "r")) == NULL) {
