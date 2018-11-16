@@ -18,12 +18,21 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    // TODO: complete this program according its description above.
+    int one_hundred_ints[100];
+    for (int i = 0; i < 100; i++) {
+      one_hundred_ints[i] = i;
+    }
 
+    size_t r1 = fwrite(one_hundred_ints, sizeof(int), 100, fp);
+    if (r1 < 100) {
+      perror("fwrite");
+      exit(1);
+    }
 
-
-
-
-    fclose(fp);
+    int result;
+    if ((result = fclose(fp)) != 0) {
+      perror("fclose");
+      exit(1);
+    }
     return 0;
 }
