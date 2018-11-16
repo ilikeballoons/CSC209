@@ -16,7 +16,7 @@
 long num_reads, seconds;
 
 void handler(int code) {
-  fprintf(stderr, "Signal %d received, captain!\n", code);
+  fprintf(stderr, MESSAGE, num_reads, seconds);
 }
 /* The first command-line argument is the number of seconds to set a timer to run.
  * The second argument is the name of a binary file containing 100 ints.
@@ -25,31 +25,28 @@ void handler(int code) {
 
 int main(int argc, char **argv) {
     struct sigaction newact;
+    struct itimerval timer;
+
     newact.sa_handler = handler;
     newact.sa_flags = 0;
     sigemptyset(&newact.sa_mask);
     sigaction(SIGPROF, &newact, NULL);
-
-
 
     if (argc != 3) {
         fprintf(stderr, "Usage: time_reads s filename\n");
         exit(1);
     }
     seconds = strtol(argv[1], NULL, 10);
-    struct itimerval timer;
-    timer.it_value.tv_sec = (time_t)seconds;
-    timer.it_value.tv_usec = 0;
-    timer.it_interval.tv_sec = (time_t)seconds;
-    timer.it_interval.tv_usec = 0;
 
-    setitimer(ITIMER_PROF, &timer, NULL);
+    timer.it_value.tv_sec = seconds;
+    timer.it_value.tv_usec = 0;// (int)seconds * 1000000;
+    timer.it_interval.tv_sec = seconds;
+    timer.it_interval.tv_usec = 0;//(int)seconds * 1000000;
 
-    // if(setitimer(ITIMER_PROF, &timer, NULL) == -1) {
-    //   perror("setitimer");
-    //   exit(1);
-    // }
-
+    if(setitimer(ITIMER_PROF, &timer, NULL) == -1) {
+        perror("setitimer");
+        exit(1);
+    }
 
     FILE *fp;
     if ((fp = fopen(argv[2], "r")) == NULL) {
@@ -71,6 +68,7 @@ int main(int argc, char **argv) {
         perror("fread");
         exit(1);
       }
+      num_reads++;
       fprintf(stderr, "%d\n", num);
       sleep(1);
     }
