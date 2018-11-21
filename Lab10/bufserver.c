@@ -38,9 +38,7 @@ int main() {
         int nbytes;
         while ((nbytes = read(fd, after, room)) > 0) {
             // Step 1: update inbuf (how many bytes were just added?)
-            if (inbuf+nbytes <= room) {
-              inbuf += nbytes;
-            }
+            inbuf += nbytes;
 
             int where;
 
@@ -64,7 +62,7 @@ int main() {
 
                 // Step 4: update inbuf and remove the full line from the buffer
                 // There might be stuff after the line, so don't just do inbuf = 0.
-                inbuf -= where;
+                inbuf = inbuf - where;
                 memset(buf, '\0', where - 1);
 
                 // You want to move the stuff after the full line to the beginning
