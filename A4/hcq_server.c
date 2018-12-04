@@ -11,7 +11,8 @@
 #include "hcq.h"
 #include "hcq_server.h"
 
-// Use global variables so we can have exactly one TA list and one student list
+/* Use global variables so we can have exactly one TA list, one student list,
+ and one client list */
 Ta *ta_list = NULL;
 Student *stu_list = NULL;
 Client *client_list = NULL;
@@ -47,12 +48,12 @@ int main() {
           if (fd < 0) {
             continue;
           }
-          handle_client(add_client(&client_list, new_fd));
+          add_client(new_fd);
           FD_SET(new_fd, &active_fd_set);
         } else {
-          Client *client = find_client(&client_list, fd);
+          Client *client = find_client(fd);
           if(client->state == DISCONNECT_STATE) {
-            close(fd);
+            remove_client(fd);
             FD_CLR(fd, &active_fd_set);
           } else {
             handle_client(client);
@@ -64,17 +65,16 @@ int main() {
   return 0;
 }
 
-Client *add_client (Client **client_list_ptr, int fd) {
+Client *add_client (int fd) {
   Client *new_client = Malloc(sizeof(Client));
   new_client->socket = fd;
   new_client->state = WAITING_NAME_STATE;
   new_client->next = NULL;
 
-
-  if (*client_list_ptr == NULL) {
-    *client_list_ptr = new_client;
+  if (client_list == NULL) {
+    client_list = new_client;
   } else {
-    Client *last = *client_list_ptr;
+    Client *last = client_list;
     while (last->next != NULL) {
       last = last->next;
     }
@@ -86,38 +86,67 @@ Client *add_client (Client **client_list_ptr, int fd) {
   return new_client;
 }
 
-int remove_client (Client **client_list_ptr, int fd) {
+int remove_client (int fd) {
   Client *client;
-  if ((client = find_client(client_list_ptr, fd)) == NULL) {
+  if ((client = find_client(fd)) == NULL) {
     return -1;
   }
-  if (client->socket == (*client_list_ptr)->socket) {
+  switch (client->type) { // remove on disconnect
+    case STUDENT :
+    give_up_waiting(&stu_list, client->name);
+      break;
+    case TA :
+      remove_ta(&ta_list, client->name);
+      break;
+  }
+  if (client->socket == client_list->socket) {
     // first in the linked list
-    *client_list_ptr = (*client_list_ptr)->next;
+    client_list = client_list->next;
     return 0;
   }
-  Client *last = *client_list_ptr;
+  Client *last = client_list;
   while (last->next->socket != client->socket) {
     // middle/end of queue
     last = last->next;
   }
-  last->next = client->next;
+  last = client->next;
+  close(fd);
   return 0;
 }
 
-Client *find_client (Client **client_list_ptr, int fd) {
-  if (*client_list_ptr == NULL) {
-    return NULL;
-  } else {
-    Client *last = *client_list_ptr;
-    while (last != NULL) {
-      if (last->socket == fd) {
-        return last;
-      }
-      last = last->next;
-    }
+Client *find_client (int fd) {
+  if (client_list == NULL) {
     return NULL;
   }
+  Client *last = client_list;
+  while (last != NULL) {
+    if (last->socket == fd) {
+      return last;
+    }
+    last = last->next;
+  }
+  return NULL;
+}
+
+Client *find_client_student(Student *student) {
+  printf("132\n");
+  if (client_list == NULL) {
+    printf("134\n");
+    return NULL;
+  }
+  Client *last = client_list;
+  printf("137\n"); // TODO: SEGFAULT HERE WHEN THERE'S NO STUDENTS LEFT AND TA PRESSES NEXT
+  while (last != NULL) {
+    if (strcmp(last->name, student->name) == 0) {
+      printf("140\n");
+      return last;
+    }
+    printf("143\n");
+    last = last->next;
+    printf("145\n");
+  }
+  printf("149\\/\n");
+  return NULL;
 }
 
 void handle_client(Client *client) {
@@ -162,7 +191,7 @@ void handle_client(Client *client) {
       free(msg);
       client->state = WAITING_T_COMMAND_STATE;
     } else {
-      msg_length = asprintf(&msg, "Invalid role (enter T or S)?\r\n");
+      msg_length = asprintf(&msg, "Invalid role (enter T or S)\r\n");
       write(client->socket, msg, msg_length);
       free(msg);
     }
@@ -203,19 +232,19 @@ void handle_client(Client *client) {
       write(client->socket, msg, msg_length);
       free(msg);
     } else if (strcmp(command, "next") == 0) {
+      Client *to_serve = find_client_student(stu_list);
+      printf("after find_client_student\n");
+      msg_length = asprintf(&msg, "Your turn to see the TA.\r\nWe are disconnecting you from the server now. Press Ctrl-C to close nc\r\n");
+      write(to_serve->socket, msg, msg_length);
+      free(msg);
+      to_serve->state = DISCONNECT_STATE;
       next_overall(client->name, &ta_list, &stu_list);
+      printf("after next_overall");
     } else {
       msg_length = asprintf(&msg, "Incorrect syntax\r\n");
       write(client->socket, msg, msg_length);
       free(msg);
     }
-    break;
-
-    case S_HELPING_STATE :
-    msg_length = asprintf(&msg, "Your turn to see the TA.\r\nWe are disconnecting you from the server now. Press Ctrl-C to close nc\r\n");
-    write(client->socket, msg, msg_length);
-    free(msg);
-    client->state = DISCONNECT_STATE;
     break;
   }
   free(command);
