@@ -31,6 +31,7 @@ typedef struct ta Ta;
 // helper functions not directly related to only one command in the API
 Student *find_student(Student *stu_list, char *student_name);
 Ta *find_ta(Ta *ta_list, char *ta_name);
+int take_student(Ta *ta, Student **stu_list_ptr, Student *to_serve);
 
 // functions provided as the API to a help-centre queue
 int add_student(Student **stu_list_ptr, char *student_name, char *course_num,

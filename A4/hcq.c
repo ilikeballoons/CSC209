@@ -159,29 +159,41 @@ int add_student(Student **stu_list_ptr, char *student_name, char *course_code,
     *ta_list_ptr = new_ta;
   }
 
-  /* remove this Ta from the ta_list and free the associated memory
-  * Return 0 on success or 1 if this ta_name is not found in the list
-  */
+  /* Remove this Ta from the ta_list and free the associated memory with
+   * both the Ta we are removing and the current student (if any).
+   * Return 0 on success or 1 if this ta_name is not found in the list
+   */
   int remove_ta(Ta **ta_list_ptr, char *ta_name) {
-    Ta *head = *ta_list_ptr;
-    if (head == NULL) {
-      return 1;
-    } else if (strcmp(head->name, ta_name) == 0) {
-      // TA is at the head so special case
-      *ta_list_ptr = head->next;
-      free(head);
-      return 0;
-    }
-    while (head->next != NULL) {
-      if (strcmp(head->next->name, ta_name) == 0) {
-        Ta *tofree = head->next;
-        head->next = head->next->next;
-        free(tofree);
-        return 0;
+      Ta *head = *ta_list_ptr;
+      if (head == NULL) {
+          return 1;
+      } else if (strcmp(head->name, ta_name) == 0) {
+          // TA is at the head so special case
+          *ta_list_ptr = head->next;
+          take_student(head, NULL, NULL);
+          // memory for the student has been freed. Now free memory for the TA.
+          free(head->name);
+          free(head);
+          return 0;
       }
-    }
-    // if we reach here, the ta_name was not in the list
-    return 1;
+      while (head->next != NULL) {
+          if (strcmp(head->next->name, ta_name) == 0) {
+              Ta *ta_tofree = head->next;
+              //  We have found the ta to remove, but before we do that
+              //  we need to finish with the student and free the student.
+              //  You need to complete this helper function
+              take_student(ta_tofree, NULL, NULL);
+
+              head->next = head->next->next;
+              // memory for the student has been freed. Now free memory for the TA.
+              free(ta_tofree->name);
+              free(ta_tofree);
+              return 0;
+          }
+          head = head->next;
+      }
+      // if we reach here, the ta_name was not in the list
+      return 1;
   }
 
 
