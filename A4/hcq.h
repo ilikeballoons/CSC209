@@ -1,8 +1,6 @@
 #ifndef HCQ_H
 #define HCQ_H
 
-#define EXIT_FAILURE 1
-
 /* Students are kept in order by time with newest
    students at the end of the lists. */
 struct student{

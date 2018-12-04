@@ -4,9 +4,6 @@
 #include <string.h>
 #include <time.h>
 #include "hcq.h"
-#define INPUT_BUFFER_SIZE 256
-#define OUT_BUF_SIZE 1024
-
 #define FULL_QUEUE_LENGTH 14
 
 void *Malloc (size_t size) {
@@ -196,7 +193,6 @@ int add_student(Student **stu_list_ptr, char *student_name, char *course_code,
       return 1;
   }
 
-
   /* Take student to_serve out of the stu_list and assign them as the currently
   *   being served sudent for TA with name ta_name.
   * If there is another student currently being served then this finishes
@@ -206,7 +202,6 @@ int add_student(Student **stu_list_ptr, char *student_name, char *course_code,
   * If ta_name is not in ta_list, return 1 and take no further action.
   */
   int take_student(Ta *ta, Student **stu_list_ptr, Student *to_serve) {
-
     // find student being served if any and release
     Student *servee = ta->current_student;
     if (servee != NULL) {
@@ -241,7 +236,6 @@ int add_student(Student **stu_list_ptr, char *student_name, char *course_code,
     }
     return take_student(ta, stu_list_ptr, to_serve_next);
   }
-
 
   // print a message about which TAs are serving which students
   char *print_currently_serving(Ta *ta_list) {
@@ -345,28 +339,4 @@ int add_student(Student **stu_list_ptr, char *student_name, char *course_code,
       stu_list = stu_list->next_overall;
     }
     return all_students;
-  }
-
-
-
-  /* Dynamically allocate space for the array course list and populate it
-  * according to information in the configuration file config_filename
-  * Return the number of courses in the array.
-  * If the configuration file can not be opened, call perror() and exit.
-  */
-
-  int config_course_list(Course **courselist_ptr, char *config_filename) {
-    /* for this stripped-down implementation, we are just ignoring
-    the config_filename
-    */
-
-    *courselist_ptr = malloc(sizeof(Course) * 3);
-    if (*courselist_ptr == NULL) {
-      perror("Malloc for course list\n");
-      exit(EXIT_FAILURE);
-    }
-    strcpy((*courselist_ptr)[0].code, "CSC108");
-    strcpy((*courselist_ptr)[1].code, "CSC148");
-    strcpy((*courselist_ptr)[2].code, "CSC209");
-    return 3;
   }

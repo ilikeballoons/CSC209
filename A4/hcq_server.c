@@ -16,6 +16,7 @@
 Ta *ta_list = NULL;
 Student *stu_list = NULL;
 Client *client_list = NULL;
+fd_set active_fd_set, read_fd_set;
 
 Course *courses;
 int num_courses = 3;
@@ -31,7 +32,6 @@ int main() {
   struct sockaddr_in *self = init_server_addr(PORT);
   int listen_fd = set_up_server_socket(self, 5);
   // Initialize the set of active sockets.
-  fd_set active_fd_set, read_fd_set;
   FD_ZERO(&active_fd_set);
   FD_SET(listen_fd, &active_fd_set);
 
@@ -56,7 +56,6 @@ int main() {
           Client *client = find_client(fd);
           if(client->state == DISCONNECT_STATE) {
             remove_client(fd);
-            FD_CLR(fd, &active_fd_set);
           } else {
             handle_client(client);
           }
@@ -95,7 +94,6 @@ Client *add_client (int fd) {
 }
 
 int remove_client (int fd) {
-  // TODO: FREE THE CLIENT!!!
   Client *client;
   if ((client = find_client(fd)) == NULL) {
     return -1;
@@ -119,11 +117,11 @@ int remove_client (int fd) {
     last = last->next;
   }
   last = client->next;
-  printf("1\n");
   free(client->name);
-  printf("2\n");
   free(client);
   close(fd);
+  FD_CLR(fd, &active_fd_set);
+
   return 0;
 }
 
@@ -156,17 +154,18 @@ Client *find_client_student(Student *student) {
 }
 
 void handle_client(Client *client) {
-  // char buf[INPUT_BUFFER_SIZE] = {'\0'};
-  // char *after = buf;
-
-  // int inbuf = 0;
-  // int room = sizeof(buf);
-
   int nbytes = read(client->socket, client->after, client->room); // listen for input
+  if (nbytes == -1) { // client disconnected with CTRL+C
+    remove_client(client->socket);
+  }
   client->inbuf += nbytes; // how many bytes were just added?
 
   int where = find_network_newline(client->buf, client->inbuf);// listen for complete commands
-  if (where != -1) {
+  if (where == -2) {
+    printf("in disconnect conditional\n");
+    remove_client(client->socket);
+  } else if (where != -1){
+    printf("not in disconnect conditional\n");
     client->buf[where-2] = '\0';
     char *command = Malloc(strlen(client->buf));
     strcpy(command, client->buf);
@@ -216,7 +215,7 @@ void handle_client(Client *client) {
         msg_length = asprintf(&msg, "This is not a valid course. Good-bye.\r\n");
         write(client->socket, msg, msg_length);
         free(msg);
-        client->state = DISCONNECT_STATE; // TODO: doesn't end NC
+        client->state = DISCONNECT_STATE;
       }
       break;
 
@@ -347,7 +346,7 @@ int set_up_server_socket(struct sockaddr_in *self, int num_queue) {
   * Definitely do not use strchr or other string functions to search here. (Why not?)
   */
   int find_network_newline(const char *buf, int n) {
-    if (n > INPUT_BUFFER_SIZE) { return - 1; } // invalid search index
+    if (n > INPUT_BUFFER_SIZE - 2) { return -2; } // invalid search index
     for (int i = 0; i < n; i++) {
       if (buf[i] == '\r' && buf[i+1] == '\n') {
         return (i+1)+1;
