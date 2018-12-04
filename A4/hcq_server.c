@@ -13,7 +13,7 @@
 
 // Use global variables so we can have exactly one TA list and one student list
 Ta *ta_list = NULL;
-Student *stu_list = NULL;``
+Student *stu_list = NULL;
 Client *client_list = NULL;
 
 Course *courses;
@@ -128,113 +128,103 @@ void handle_client(Client *client) {
   int inbuf = 0;
   int room = sizeof(buf);
 
-  while (client->state != DISCONNECT_STATE && (nbytes = read(client->socket, after, room)) > 0) { // listen for input
-    inbuf += nbytes; // how many bytes were just added?
-    int where;
+  nbytes = read(client->socket, after, room); // listen for input
+  inbuf += nbytes; // how many bytes were just added?
 
-    while (client->state != DISCONNECT_STATE && (where = find_network_newline(buf, inbuf)) > 0) { // listen for complete commands
-      buf[where-2] = '\0';
-      char *command = Malloc(strlen(buf));
-      strcpy(command, buf);
-      int msg_length;
-      char *msg;
+  int where = find_network_newline(buf, inbuf);// listen for complete commands
+  buf[where-2] = '\0';
+  char *command = Malloc(strlen(buf));
+  strcpy(command, buf);
+  int msg_length;
+  char *msg;
 
-      switch (client->state) {
-        case WAITING_NAME_STATE :
-        asprintf(&client->name, "%s", command);
-        msg_length = asprintf(&msg, "Are you a TA or a Student (enter T or S)?\r\n");
-        write(client->socket, msg, msg_length);
-        free(msg);
-        client->state = WAITING_TYPE_STATE;
-        break;
+  switch (client->state) {
+    case WAITING_NAME_STATE :
+    asprintf(&client->name, "%s", command);
+    msg_length = asprintf(&msg, "Are you a TA or a Student (enter T or S)?\r\n");
+    write(client->socket, msg, msg_length);
+    free(msg);
+    client->state = WAITING_TYPE_STATE;
+    break;
 
-        case WAITING_TYPE_STATE :
-        if (strcmp(command, "S") == 0) {
-          client->type = STUDENT;
-          msg_length = asprintf(&msg, "Valid courses: %s, %s, %s\r\nWhich course are you asking about?\r\n", courses[0].code, courses[1].code, courses[2].code);
-          write(client->socket, msg, msg_length);
-          free(msg);
-          client->state = WAITING_S_COURSE_STATE;
-        } else if (strcmp(command, "T") == 0) {
-          client->type = TA;
-          add_ta(&ta_list, client->name);
-          msg_length = asprintf(&msg, "Valid commands for TA:\r\n\tstats\r\n\tnext\r\n\t(or use Ctrl-C to leave)\r\n");
-          write(client->socket, msg, msg_length);
-          free(msg);
-          client->state = WAITING_T_COMMAND_STATE;
-        } else {
-          msg_length = asprintf(&msg, "Invalid role (enter T or S)?\r\n");
-          write(client->socket, msg, msg_length);
-          free(msg);
-        }
-        break;
-
-        case WAITING_S_COURSE_STATE :
-        if(strcmp(command, courses[0].code) == 0
-        || strcmp(command, courses[1].code) == 0
-        || strcmp(command, courses[2].code) == 0) {
-          add_student(&stu_list, client->name, command, courses, num_courses);
-          client->state = WAITING_S_COMMAND_STATE;
-          msg_length = asprintf(&msg, "You have been entered into the queue. While you wait, you can use the command stats to see which TAs are currently serving students.\r\n");
-          write(client->socket, msg, msg_length);
-          free(msg);
-        } else {
-          msg_length = asprintf(&msg, "This is not a valid course. Good-bye.\r\n");
-          write(client->socket, msg, msg_length);
-          free(msg);
-          client->state = DISCONNECT_STATE; // TODO: doesn't end NC
-        }
-        break;
-
-        case WAITING_S_COMMAND_STATE :
-        if (strcmp(command, "stats") == 0) {
-          msg_length = asprintf(&msg, "%s", print_full_queue(stu_list));
-          write(client->socket, msg, msg_length);
-          free(msg);
-        } else {
-          msg_length = asprintf(&msg, "Incorrect syntax\r\n");
-          write(client->socket, msg, msg_length);
-          free(msg);
-        }
-        break;
-
-        case WAITING_T_COMMAND_STATE :
-        if (strcmp(command, "stats") == 0) {
-          msg_length = asprintf(&msg, "%s", print_currently_serving(ta_list));
-          write(client->socket, msg, msg_length);
-          free(msg);
-        } else if (strcmp(command, "next") == 0) {
-          next_overall(client->name, &ta_list, &stu_list);
-        } else {
-          msg_length = asprintf(&msg, "Incorrect syntax\r\n");
-          write(client->socket, msg, msg_length);
-          free(msg);
-        }
-        break;
-
-        case S_HELPING_STATE :
-          msg_length = asprintf(&msg, "Your turn to see the TA.\r\nWe are disconnecting you from the server now. Press Ctrl-C to close nc\r\n");
-          write(client->socket, msg, msg_length);
-          free(msg);
-          client->state = DISCONNECT_STATE;
-          break;
-      }
-      free(command);
-      inbuf = inbuf - where;
-      memset(buf, '\0', where - 1);
-      memmove(buf, buf + where, inbuf); // move the stuff after the full ine to the beginning of the buffer
+    case WAITING_TYPE_STATE :
+    if (strcmp(command, "S") == 0) {
+      client->type = STUDENT;
+      msg_length = asprintf(&msg, "Valid courses: %s, %s, %s\r\nWhich course are you asking about?\r\n", courses[0].code, courses[1].code, courses[2].code);
+      write(client->socket, msg, msg_length);
+      free(msg);
+      client->state = WAITING_S_COURSE_STATE;
+    } else if (strcmp(command, "T") == 0) {
+      client->type = TA;
+      add_ta(&ta_list, client->name);
+      msg_length = asprintf(&msg, "Valid commands for TA:\r\n\tstats\r\n\tnext\r\n\t(or use Ctrl-C to leave)\r\n");
+      write(client->socket, msg, msg_length);
+      free(msg);
+      client->state = WAITING_T_COMMAND_STATE;
+    } else {
+      msg_length = asprintf(&msg, "Invalid role (enter T or S)?\r\n");
+      write(client->socket, msg, msg_length);
+      free(msg);
     }
-    after = &(buf[inbuf]);
-    room = INPUT_BUFFER_SIZE - inbuf;
-  }
-  switch (client->type) { // remove on disconnect
-    case STUDENT :
-    give_up_waiting(&stu_list, client->name);
     break;
-    case TA :
-    remove_ta(&ta_list, client->name);
+
+    case WAITING_S_COURSE_STATE :
+    if(strcmp(command, courses[0].code) == 0
+    || strcmp(command, courses[1].code) == 0
+    || strcmp(command, courses[2].code) == 0) {
+      add_student(&stu_list, client->name, command, courses, num_courses);
+      client->state = WAITING_S_COMMAND_STATE;
+      msg_length = asprintf(&msg, "You have been entered into the queue. While you wait, you can use the command stats to see which TAs are currently serving students.\r\n");
+      write(client->socket, msg, msg_length);
+      free(msg);
+    } else {
+      msg_length = asprintf(&msg, "This is not a valid course. Good-bye.\r\n");
+      write(client->socket, msg, msg_length);
+      free(msg);
+      client->state = DISCONNECT_STATE; // TODO: doesn't end NC
+    }
+    break;
+
+    case WAITING_S_COMMAND_STATE :
+    if (strcmp(command, "stats") == 0) {
+      msg_length = asprintf(&msg, "%s", print_full_queue(stu_list));
+      write(client->socket, msg, msg_length);
+      free(msg);
+    } else {
+      msg_length = asprintf(&msg, "Incorrect syntax\r\n");
+      write(client->socket, msg, msg_length);
+      free(msg);
+    }
+    break;
+
+    case WAITING_T_COMMAND_STATE :
+    if (strcmp(command, "stats") == 0) {
+      msg_length = asprintf(&msg, "%s", print_currently_serving(ta_list));
+      write(client->socket, msg, msg_length);
+      free(msg);
+    } else if (strcmp(command, "next") == 0) {
+      next_overall(client->name, &ta_list, &stu_list);
+    } else {
+      msg_length = asprintf(&msg, "Incorrect syntax\r\n");
+      write(client->socket, msg, msg_length);
+      free(msg);
+    }
+    break;
+
+    case S_HELPING_STATE :
+    msg_length = asprintf(&msg, "Your turn to see the TA.\r\nWe are disconnecting you from the server now. Press Ctrl-C to close nc\r\n");
+    write(client->socket, msg, msg_length);
+    free(msg);
+    client->state = DISCONNECT_STATE;
     break;
   }
+  free(command);
+  inbuf = inbuf - where;
+  memset(buf, '\0', where - 1);
+  memmove(buf, buf + where, inbuf); // move the stuff after the full ine to the beginning of the buffer
+
+  after = &(buf[inbuf]);
+  room = INPUT_BUFFER_SIZE - inbuf;
 }
 
 /*
