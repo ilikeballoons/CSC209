@@ -13,7 +13,7 @@ void *Malloc (size_t size) {
   void *ret = malloc(size);
   if (ret == NULL) {
     perror("malloc");
-    exit(1);
+    exit(EXIT_FAILURE);
   }
   return ret;
 }
@@ -252,7 +252,7 @@ int add_student(Student **stu_list_ptr, char *student_name, char *course_code,
         ta_list->current_student->name);
         if (size_of_string == -1) {
           perror("asprintf");
-          exit(1);
+          exit(EXIT_FAILURE);
         }
         free(ta_string);
         size_of_buffer += size_of_string;
@@ -260,7 +260,7 @@ int add_student(Student **stu_list_ptr, char *student_name, char *course_code,
         size_of_string = asprintf(&ta_string, "TA: %s has no student\r\n", ta_list->name);
         if (size_of_string == -1) {
           perror("asprintf");
-          exit(1);
+          exit(EXIT_FAILURE);
         }
         free(ta_string);
         size_of_buffer += size_of_string;
@@ -280,7 +280,7 @@ int add_student(Student **stu_list_ptr, char *student_name, char *course_code,
         ta_list->current_student->name);
         if (size_of_string == -1) {
           perror("asprintf");
-          exit(1);
+          exit(EXIT_FAILURE);
         }
         strcat(currently_serving, ta_string);
         free(ta_string);
@@ -288,7 +288,7 @@ int add_student(Student **stu_list_ptr, char *student_name, char *course_code,
         size_of_string = asprintf(&ta_string, "TA: %s has no student\r\n", ta_list->name);
         if (size_of_string == -1) {
           perror("asprintf");
-          exit(1);
+          exit(EXIT_FAILURE);
         }
         strcat(currently_serving, ta_string);
         free(ta_string);
@@ -311,7 +311,7 @@ int add_student(Student **stu_list_ptr, char *student_name, char *course_code,
       int size_of_string = asprintf(&student_string, "Student %s:%s\r\n",stu_list->name, stu_list->course->code);
       if (size_of_string == -1) {
         perror("asprintf");
-        exit(1);
+        exit(EXIT_FAILURE);
       }
       free(student_string);
       size_of_buffer += size_of_string;
@@ -326,7 +326,7 @@ int add_student(Student **stu_list_ptr, char *student_name, char *course_code,
       int size_of_string = asprintf(&student_string, "Student %s:%s\r\n",stu_list->name, stu_list->course->code);
       if (size_of_string == -1) {
         perror("asprintf");
-        exit(1);
+        exit(EXIT_FAILURE);
       }
       strcat(all_students, student_string);
       free(student_string);
@@ -351,7 +351,7 @@ int add_student(Student **stu_list_ptr, char *student_name, char *course_code,
     *courselist_ptr = malloc(sizeof(Course) * 3);
     if (*courselist_ptr == NULL) {
       perror("Malloc for course list\n");
-      exit(1);
+      exit(EXIT_FAILURE);
     }
     strcpy((*courselist_ptr)[0].code, "CSC108");
     strcpy((*courselist_ptr)[1].code, "CSC148");

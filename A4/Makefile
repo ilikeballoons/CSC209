@@ -4,7 +4,7 @@ CFLAGS = -DPORT=\$(PORT) -Wall -std=c99 -g
 hcq_server: hcq_server.o hcq.o
 	gcc $(CFLAGS) -o hcq_server hcq_server.o hcq.o
 
-hcq_server.o: hcq_server.c hcq.h
+hcq_server.o: hcq_server.c hcq.h hcq_server.h
 	gcc $(CFLAGS) -c hcq_server.c
 
 helpcentre: helpcentre.o hcq.o
