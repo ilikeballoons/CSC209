@@ -49,4 +49,6 @@ char *print_currently_serving(Ta *ta_list);
 // list all students in queue
 char *print_full_queue(Student *stu_list);
 
+void *Malloc (size_t size);
+
 #endif
