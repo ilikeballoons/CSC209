@@ -166,7 +166,11 @@ void handle_client(Client *client) {
   client->inbuf += nbytes; // how many bytes were just added?
 
   int where = find_network_newline(client->buf, client->inbuf);// listen for complete commands
-  if (where != -1) {
+  if (where == -2) {
+    printf("in disconnect conditional\n");
+    remove_client(client->socket);
+  } else if (where != -1){
+    printf("not in disconnect conditional\n");
     client->buf[where-2] = '\0';
     char *command = Malloc(strlen(client->buf));
     strcpy(command, client->buf);
@@ -216,7 +220,7 @@ void handle_client(Client *client) {
         msg_length = asprintf(&msg, "This is not a valid course. Good-bye.\r\n");
         write(client->socket, msg, msg_length);
         free(msg);
-        client->state = DISCONNECT_STATE; // TODO: doesn't end NC
+        client->state = DISCONNECT_STATE;
       }
       break;
 
@@ -347,7 +351,7 @@ int set_up_server_socket(struct sockaddr_in *self, int num_queue) {
   * Definitely do not use strchr or other string functions to search here. (Why not?)
   */
   int find_network_newline(const char *buf, int n) {
-    if (n > INPUT_BUFFER_SIZE) { return - 1; } // invalid search index
+    if (n > INPUT_BUFFER_SIZE - 2) { return -2; } // invalid search index
     for (int i = 0; i < n; i++) {
       if (buf[i] == '\r' && buf[i+1] == '\n') {
         return (i+1)+1;
