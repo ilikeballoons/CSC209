@@ -1,5 +1,6 @@
 #ifndef HCQ_H
 #define HCQ_H
+#endif
 
 /* Students are kept in order by time with newest
    students at the end of the lists. */
@@ -47,5 +48,3 @@ void *Malloc (size_t size);
 int Read(int fd, void *buf, size_t nbytes);
 int Write(int fd, const void *buf, size_t nbytes);
 int Close(int fd);
-
-#endif

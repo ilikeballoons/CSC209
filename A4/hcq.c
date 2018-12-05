@@ -7,6 +7,9 @@
 #include "hcq.h"
 #define FULL_QUEUE_LENGTH 14
 
+/*
+* malloc with error checking.
+*/
 void *Malloc(size_t size) {
   void *ret = malloc(size);
   if (ret == NULL) {
@@ -16,6 +19,9 @@ void *Malloc(size_t size) {
   return ret;
 }
 
+/*
+* read with error checking.
+*/
 int Read(int fd, void *buf, size_t nbytes) {
   int ret = read(fd, buf, nbytes);
   if (ret < 0) {
@@ -25,6 +31,9 @@ int Read(int fd, void *buf, size_t nbytes) {
   return ret;
 }
 
+/*
+* write with error checking.
+*/
 int Write(int fd, const void *buf, size_t nbytes) {
   int ret = write(fd, buf, nbytes);
   if (ret < 0) {
@@ -34,6 +43,9 @@ int Write(int fd, const void *buf, size_t nbytes) {
   return ret;
 }
 
+/*
+* close with error checking.
+*/
 int Close(int fd) {
   int ret = close(fd);
   if (ret == -1) {
@@ -91,7 +103,6 @@ Course *find_course(Course *courses, int num_courses, char *course_code) {
 */
 int add_student(Student **stu_list_ptr, char *student_name, char *course_code,
   Course *course_array, int num_courses) {
-
     // check if this student is already in the queue and if so, don't add
     Student *old_student = find_student(*stu_list_ptr, student_name);
     if (old_student != NULL) {
@@ -110,9 +121,7 @@ int add_student(Student **stu_list_ptr, char *student_name, char *course_code,
       free(new_student);
       return 2;
     }
-
     new_student->next_overall = NULL;
-
     // find the end of the current list to put this student at the end
     if (*stu_list_ptr == NULL) {
       // there is currently no student in the list at all, so special case
@@ -126,7 +135,6 @@ int add_student(Student **stu_list_ptr, char *student_name, char *course_code,
       // at this point last is the last real student in the overall list
       last->next_overall = new_student;
     }
-
     return 0;
   }
 
@@ -156,15 +164,15 @@ int add_student(Student **stu_list_ptr, char *student_name, char *course_code,
   */
   int give_up_waiting(Student **stu_list_ptr, char *student_name) {
     // find the student based on name from the student list
-    Student *thisstudent= find_student(*stu_list_ptr, student_name);
-    if (thisstudent == NULL) {
+    Student *this_student= find_student(*stu_list_ptr, student_name);
+    if (this_student == NULL) {
       return 1;
     }
-    route_around_overall(stu_list_ptr, thisstudent);
+    route_around_overall(stu_list_ptr, this_student);
 
     // free memory
-    free(thisstudent->name);
-    free(thisstudent);
+    free(this_student->name);
+    free(this_student);
     return 0;
   }
 

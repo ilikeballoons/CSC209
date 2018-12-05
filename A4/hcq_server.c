@@ -63,7 +63,9 @@ int main() {
   return 0;
 }
 
-/* Creates a new client and adds it to the client linked list */
+/*
+* Creates a new client and adds it to the client linked list.
+*/
 Client *add_client (int fd) {
   Client *new_client = Malloc(sizeof(Client));
   new_client->socket = fd;
@@ -91,7 +93,9 @@ Client *add_client (int fd) {
   return new_client;
 }
 
-/* Removes the client from the client linked list */
+/*
+* Removes the client from the client linked list.
+*/
 void remove_client (int fd) {
   Client *client;
   if ((client = find_client(fd)) == NULL) {
@@ -123,8 +127,10 @@ void remove_client (int fd) {
   FD_CLR(fd, &active_fd_set);
 }
 
-/* Returns a pointer to a client with the given socket fd from the linked
-*  list */
+/*
+* Returns a pointer to a client with the given socket fd from the linked
+* list.
+*/
 Client *find_client (int fd) {
   if (client_list == NULL) {
     return NULL; // no clients in the linked list
@@ -139,7 +145,9 @@ Client *find_client (int fd) {
   return NULL; // client not found
 }
 
-/* Returns the client containing the provided student */
+/*
+* Returns the client containing the provided student.
+*/
 Client *find_client_student(Student *student) {
   if (client_list == NULL) {
     return NULL; // no clients in the linked list
@@ -154,7 +162,9 @@ Client *find_client_student(Student *student) {
   return NULL; // client not found
 }
 
-/* Reads input from the user and performs actions on a given client */
+/*
+* Reads input from the user and performs actions on a given client .
+*/
 void handle_client(Client *client) {
   int nbytes;
   // Kick the user if input > 30 characters
@@ -167,9 +177,7 @@ void handle_client(Client *client) {
   client->inbuf += nbytes;
 
   int where = find_network_newline(client->buf, client->inbuf); // listen for complete commands
-  if (where == -2) {
-    remove_client(client->socket);
-  } else if (where != -1) {
+  if (where != -1) {
     client->buf[where-2] = '\0';
     char *command = Malloc(strlen(client->buf));
     strcpy(command, client->buf);
@@ -300,7 +308,6 @@ int set_up_server_socket(struct sockaddr_in *self, int num_queue) {
     return soc;
   }
 
-
   /*
   * Wait for and accept a new connection.
   * Return -1 if the accept call failed.
@@ -323,13 +330,11 @@ int set_up_server_socket(struct sockaddr_in *self, int num_queue) {
   * Search the first n characters of buf for a network newline (\r\n).
   * Return one plus the index of the '\n' of the first network newline,
   * or -1 if no network newline is found.
-  * Definitely do not use strchr or other string functions to search here. (Why not?)
   */
   int find_network_newline(const char *buf, int n) {
     if (n > INPUT_BUFFER_SIZE - 2) {
-      printf("y halo thar\n");
-      return -1;
-    } // invalid search index
+      return -1; // invalid search index
+    }
     for (int i = 0; i < n; i++) {
       if (buf[i] == '\r' && buf[i + 1] == '\n') {
         return (i + 1) + 1;
