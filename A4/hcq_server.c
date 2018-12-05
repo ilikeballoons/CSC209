@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <unistd.h>
+// #include <unistd.h>
 #include <arpa/inet.h>     /* inet_ntoa */
 #include <netdb.h>         /* gethostname */
 #include <sys/socket.h>
@@ -16,14 +16,11 @@
 Ta *ta_list = NULL;
 Student *stu_list = NULL;
 Client *client_list = NULL;
-fd_set active_fd_set, read_fd_set;
-
 Course *courses;
 int num_courses = 3;
+fd_set active_fd_set, read_fd_set;
 
 int main() {
-  setbuf(stdout, NULL); //TODO: delete this
-
   courses = Malloc(sizeof(Course) * 3);
   strcpy(courses[0].code, "CSC108");
   strcpy(courses[1].code, "CSC148");
@@ -54,7 +51,7 @@ int main() {
           FD_SET(new_fd, &active_fd_set);
         } else {
           Client *client = find_client(fd);
-          if(client->state == DISCONNECT_STATE) {
+          if (client->state == DISCONNECT_STATE) {
             remove_client(fd);
           } else {
             handle_client(client);
@@ -66,11 +63,12 @@ int main() {
   return 0;
 }
 
+/* Creates a new client and adds it to the client linked list */
 Client *add_client (int fd) {
   Client *new_client = Malloc(sizeof(Client));
   new_client->socket = fd;
   new_client->state = WAITING_NAME_STATE;
-  new_client->type = -1;
+  new_client->type = TYPE_NOT_SET;
   new_client->next = NULL;
   for (int i = 0; i < INPUT_BUFFER_SIZE; i++) {
     new_client->buf[i] = '\0';
@@ -88,19 +86,19 @@ Client *add_client (int fd) {
     }
     last->next = new_client;
   }
-  write(new_client->socket, "Welcome to the Help Centre, what is your name?\r\n",
-  strlen("Welcome to the Help Centre, what is your name?\r\n"));
-
+  /* Send the welcome message to the client */
+  Write(new_client->socket, WELCOME_MSG, strlen(WELCOME_MSG));
   return new_client;
 }
 
-int remove_client (int fd) {
+/* Removes the client from the client linked list */
+void remove_client (int fd) {
   Client *client;
-  if ((client = find_client(fd)) == NULL) { // client not found
-    return -1;
+  if ((client = find_client(fd)) == NULL) {
+    return; // cannot find client
   }
-  if (client->type != -1) { // if type has been set
-    switch (client->type) { // remove on disconnect
+  if (client->type != TYPE_NOT_SET) { // if type is set, clean up data structure
+    switch (client->type) {
       case STUDENT :
         give_up_waiting(&stu_list, client->name);
         break;
@@ -109,151 +107,134 @@ int remove_client (int fd) {
         break;
     }
   }
-  if (client->socket == client_list->socket) {
-    // first in the linked list
+  if (client->socket == client_list->socket) {  // first in the linked list
     client_list = client_list->next;
-  } else {
+  } else { // middle/end of queue
     Client *last = client_list;
     while (last->next->socket != client->socket) {
-      // middle/end of queue
       last = last->next;
     }
     last = client->next;
   }
+  // cleaned up the data structures, now free memory, and close socket
   free(client->name);
   free(client);
-  close(fd);
+  Close(fd);
   FD_CLR(fd, &active_fd_set);
-  return 0;
 }
 
+/* Returns a pointer to a client with the given socket fd from the linked
+*  list */
 Client *find_client (int fd) {
   if (client_list == NULL) {
-    return NULL;
+    return NULL; // no clients in the linked list
   }
   Client *last = client_list;
   while (last != NULL) {
     if (last->socket == fd) {
-      return last;
+      return last; // found the desired client
     }
     last = last->next;
   }
-  return NULL;
+  return NULL; // client not found
 }
 
+/* Returns the client containing the provided student */
 Client *find_client_student(Student *student) {
   if (client_list == NULL) {
-    return NULL;
+    return NULL; // no clients in the linked list
   }
   Client *last = client_list;
   while (last != NULL) {
     if (strcmp(last->name, student->name) == 0) {
-      return last;
+      return last; // name is a match => found the client
     }
     last = last->next;
   }
-  return NULL;
+  return NULL; // client not found
 }
 
+/* Reads input from the user and performs actions on a given client */
 void handle_client(Client *client) {
   int nbytes;
+  // Kick the user if input > 30 characters
   if (client->inbuf < INPUT_BUFFER_SIZE) {
-    nbytes = read(client->socket, client->after, client->room); // listen for input
+    nbytes = Read(client->socket, client->after, client->room);
   } else {
     remove_client(client->socket);
     return;
   }
-  client->inbuf += nbytes; // how many bytes were just added?
+  client->inbuf += nbytes;
 
-  int where = find_network_newline(client->buf, client->inbuf);// listen for complete commands
+  int where = find_network_newline(client->buf, client->inbuf); // listen for complete commands
   if (where == -2) {
-    printf("in disconnect conditional\n");
     remove_client(client->socket);
-  } else if (where != -1){
-    printf("not in disconnect conditional\n");
+  } else if (where != -1) {
     client->buf[where-2] = '\0';
     char *command = Malloc(strlen(client->buf));
     strcpy(command, client->buf);
-    int msg_length;
-    char *msg;
 
     switch (client->state) {
       case WAITING_NAME_STATE :
       asprintf(&client->name, "%s", command);
-      msg_length = asprintf(&msg, "Are you a TA or a Student (enter T or S)?\r\n");
-      write(client->socket, msg, msg_length);
-      free(msg);
+      Write(client->socket, TYPE_MSG, strlen(TYPE_MSG));
       client->state = WAITING_TYPE_STATE;
       break;
 
       case WAITING_TYPE_STATE :
       if (strcmp(command, "S") == 0) {
         client->type = STUDENT;
-        msg_length = asprintf(&msg, "Valid courses: %s, %s, %s\r\nWhich course are you asking about?\r\n", courses[0].code, courses[1].code, courses[2].code);
-        write(client->socket, msg, msg_length);
-        free(msg);
+        Write(client->socket, VALID_COURSES_MSG, strlen(VALID_COURSES_MSG));
         client->state = WAITING_S_COURSE_STATE;
       } else if (strcmp(command, "T") == 0) {
         client->type = TA;
         add_ta(&ta_list, client->name);
-        msg_length = asprintf(&msg, "Valid commands for TA:\r\n\tstats\r\n\tnext\r\n\t(or use Ctrl-C to leave)\r\n");
-        write(client->socket, msg, msg_length);
-        free(msg);
+        Write(client->socket, TA_COMMANDS_MSG, strlen(TA_COMMANDS_MSG));
         client->state = WAITING_T_COMMAND_STATE;
       } else {
-        msg_length = asprintf(&msg, "Invalid role (enter T or S)\r\n");
-        write(client->socket, msg, msg_length);
-        free(msg);
+        Write(client->socket, TA_INVALID_ROLE_MSG, strlen(TA_INVALID_ROLE_MSG));
       }
       break;
 
       case WAITING_S_COURSE_STATE :
-      if(strcmp(command, courses[0].code) == 0
+      if (strcmp(command, courses[0].code) == 0
       || strcmp(command, courses[1].code) == 0
       || strcmp(command, courses[2].code) == 0) {
         add_student(&stu_list, client->name, command, courses, num_courses);
         client->state = WAITING_S_COMMAND_STATE;
-        msg_length = asprintf(&msg, "You have been entered into the queue. While you wait, you can use the command stats to see which TAs are currently serving students.\r\n");
-        write(client->socket, msg, msg_length);
-        free(msg);
+        Write(client->socket, STU_QUEUE_MSG, strlen(STU_QUEUE_MSG));
       } else {
-        msg_length = asprintf(&msg, "This is not a valid course. Good-bye.\r\n");
-        write(client->socket, msg, msg_length);
-        free(msg);
+        Write(client->socket, STU_INVALID_COURSE_MSG, strlen(STU_INVALID_COURSE_MSG));
         client->state = DISCONNECT_STATE;
       }
       break;
 
       case WAITING_S_COMMAND_STATE :
       if (strcmp(command, "stats") == 0) {
-        msg_length = asprintf(&msg, "%s", print_full_queue(stu_list));
-        write(client->socket, msg, msg_length);
+        char *msg;
+        int msg_length = asprintf(&msg, "%s", print_currently_serving(ta_list));
+        Write(client->socket, msg, msg_length);
         free(msg);
       } else {
-        msg_length = asprintf(&msg, "Incorrect syntax\r\n");
-        write(client->socket, msg, msg_length);
-        free(msg);
+        Write(client->socket, SYNTAX_ERR_MSG, strlen(SYNTAX_ERR_MSG));
       }
       break;
 
       case WAITING_T_COMMAND_STATE :
       if (strcmp(command, "stats") == 0) {
-        msg_length = asprintf(&msg, "%s", print_currently_serving(ta_list));
-        write(client->socket, msg, msg_length);
+        char *msg;
+        int msg_length = asprintf(&msg, "%s", print_full_queue(stu_list));
+        Write(client->socket, msg, msg_length);
         free(msg);
       } else if (strcmp(command, "next") == 0) {
-        if(stu_list != NULL) {
+        if (stu_list != NULL) {
           Client *to_serve = find_client_student(stu_list);
-          msg_length = asprintf(&msg, "Your turn to see the TA.\r\nWe are disconnecting you from the server now. Press Ctrl-C to close nc\r\n");
-          write(to_serve->socket, msg, msg_length);
-          free(msg);
+          Write(to_serve->socket, STU_ACCEPT_MSG, strlen(STU_ACCEPT_MSG));
           to_serve->state = DISCONNECT_STATE;
         }
         next_overall(client->name, &ta_list, &stu_list);
       } else {
-        msg_length = asprintf(&msg, "Incorrect syntax\r\n");
-        write(client->socket, msg, msg_length);
-        free(msg);
+        Write(client->socket, SYNTAX_ERR_MSG, strlen(SYNTAX_ERR_MSG));
       }
       break;
     }
@@ -272,19 +253,14 @@ void handle_client(Client *client) {
 */
 struct sockaddr_in *init_server_addr(int port) {
   struct sockaddr_in *addr = malloc(sizeof(struct sockaddr_in));
-
   // Allow sockets across machines.
   addr->sin_family = PF_INET;
-
   // The port the process will listen on.
   addr->sin_port = htons(port);
-
   // Clear this field; sin_zero is used for padding for the struct.
   memset(&(addr->sin_zero), 0, 8);
-
   // Listen on all network interfaces.
   addr->sin_addr.s_addr = INADDR_ANY;
-
   return addr;
 }
 
@@ -321,7 +297,6 @@ int set_up_server_socket(struct sockaddr_in *self, int num_queue) {
       perror("listen");
       exit(EXIT_FAILURE);
     }
-
     return soc;
   }
 
@@ -351,10 +326,13 @@ int set_up_server_socket(struct sockaddr_in *self, int num_queue) {
   * Definitely do not use strchr or other string functions to search here. (Why not?)
   */
   int find_network_newline(const char *buf, int n) {
-    if (n > INPUT_BUFFER_SIZE - 2) { return -2; } // invalid search index
+    if (n > INPUT_BUFFER_SIZE - 2) {
+      printf("y halo thar\n");
+      return -1;
+    } // invalid search index
     for (int i = 0; i < n; i++) {
-      if (buf[i] == '\r' && buf[i+1] == '\n') {
-        return (i+1)+1;
+      if (buf[i] == '\r' && buf[i + 1] == '\n') {
+        return (i + 1) + 1;
       }
     }
     return -1;

@@ -3,13 +3,41 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 #include "hcq.h"
 #define FULL_QUEUE_LENGTH 14
 
-void *Malloc (size_t size) {
+void *Malloc(size_t size) {
   void *ret = malloc(size);
   if (ret == NULL) {
     perror("malloc");
+    exit(EXIT_FAILURE);
+  }
+  return ret;
+}
+
+int Read(int fd, void *buf, size_t nbytes) {
+  int ret = read(fd, buf, nbytes);
+  if (ret < 0) {
+    perror("read");
+    exit(EXIT_FAILURE);
+  }
+  return ret;
+}
+
+int Write(int fd, const void *buf, size_t nbytes) {
+  int ret = write(fd, buf, nbytes);
+  if (ret < 0) {
+    perror("write");
+    exit(EXIT_FAILURE);
+  }
+  return ret;
+}
+
+int Close(int fd) {
+  int ret = close(fd);
+  if (ret == -1) {
+    perror("close");
     exit(EXIT_FAILURE);
   }
   return ret;
