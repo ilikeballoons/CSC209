@@ -1,4 +1,4 @@
-PORT = 51304
+PORT = 51303
 CFLAGS = -DPORT=\$(PORT) -Wall -std=gnu99 -g
 
 hcq_server: hcq_server.o hcq.o
