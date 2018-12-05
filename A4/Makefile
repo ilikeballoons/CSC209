@@ -1,5 +1,5 @@
 PORT = 51303
-CFLAGS = -DPORT=\$(PORT) -Wall -std=c99 -g
+CFLAGS = -DPORT=\$(PORT) -Wall -std=gnu99 -g
 
 hcq_server: hcq_server.o hcq.o
 	gcc $(CFLAGS) -o hcq_server hcq_server.o hcq.o

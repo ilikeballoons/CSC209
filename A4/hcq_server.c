@@ -16,6 +16,7 @@
 Ta *ta_list = NULL;
 Student *stu_list = NULL;
 Client *client_list = NULL;
+fd_set active_fd_set, read_fd_set;
 
 Course *courses;
 int num_courses = 3;
@@ -31,7 +32,6 @@ int main() {
   struct sockaddr_in *self = init_server_addr(PORT);
   int listen_fd = set_up_server_socket(self, 5);
   // Initialize the set of active sockets.
-  fd_set active_fd_set, read_fd_set;
   FD_ZERO(&active_fd_set);
   FD_SET(listen_fd, &active_fd_set);
 
@@ -56,7 +56,6 @@ int main() {
           Client *client = find_client(fd);
           if(client->state == DISCONNECT_STATE) {
             remove_client(fd);
-            FD_CLR(fd, &active_fd_set);
           } else {
             handle_client(client);
           }
@@ -71,6 +70,7 @@ Client *add_client (int fd) {
   Client *new_client = Malloc(sizeof(Client));
   new_client->socket = fd;
   new_client->state = WAITING_NAME_STATE;
+  new_client->type = -1;
   new_client->next = NULL;
   for (int i = 0; i < INPUT_BUFFER_SIZE; i++) {
     new_client->buf[i] = '\0';
@@ -95,35 +95,35 @@ Client *add_client (int fd) {
 }
 
 int remove_client (int fd) {
-  // TODO: FREE THE CLIENT!!!
   Client *client;
-  if ((client = find_client(fd)) == NULL) {
+  if ((client = find_client(fd)) == NULL) { // client not found
     return -1;
   }
-  switch (client->type) { // remove on disconnect
-    case STUDENT :
-      give_up_waiting(&stu_list, client->name);
-      break;
-    case TA :
-      remove_ta(&ta_list, client->name);
-      break;
+  if (client->type != -1) { // if type has been set
+    switch (client->type) { // remove on disconnect
+      case STUDENT :
+        give_up_waiting(&stu_list, client->name);
+        break;
+      case TA :
+        remove_ta(&ta_list, client->name);
+        break;
+    }
   }
   if (client->socket == client_list->socket) {
     // first in the linked list
     client_list = client_list->next;
-    return 0;
+  } else {
+    Client *last = client_list;
+    while (last->next->socket != client->socket) {
+      // middle/end of queue
+      last = last->next;
+    }
+    last = client->next;
   }
-  Client *last = client_list;
-  while (last->next->socket != client->socket) {
-    // middle/end of queue
-    last = last->next;
-  }
-  last = client->next;
-  printf("1\n");
   free(client->name);
-  printf("2\n");
   free(client);
   close(fd);
+  FD_CLR(fd, &active_fd_set);
   return 0;
 }
 
@@ -156,13 +156,13 @@ Client *find_client_student(Student *student) {
 }
 
 void handle_client(Client *client) {
-  // char buf[INPUT_BUFFER_SIZE] = {'\0'};
-  // char *after = buf;
-
-  // int inbuf = 0;
-  // int room = sizeof(buf);
-
-  int nbytes = read(client->socket, client->after, client->room); // listen for input
+  int nbytes;
+  if (client->inbuf < INPUT_BUFFER_SIZE) {
+    nbytes = read(client->socket, client->after, client->room); // listen for input
+  } else {
+    remove_client(client->socket);
+    return;
+  }
   client->inbuf += nbytes; // how many bytes were just added?
 
   int where = find_network_newline(client->buf, client->inbuf);// listen for complete commands
