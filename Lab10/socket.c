@@ -19,7 +19,7 @@ struct sockaddr_in *init_server_addr(int port) {
 
     // The port the process will listen on.
     addr->sin_port = htons(port);
-    
+
     // Clear this field; sin_zero is used for padding for the struct.
     memset(&(addr->sin_zero), 0, 8);
 
@@ -76,14 +76,13 @@ int accept_connection(int listenfd) {
     unsigned int peer_len = sizeof(peer);
     peer.sin_family = PF_INET;
 
-    fprintf(stderr, "Waiting for a new connection...\n");
     int client_socket = accept(listenfd, (struct sockaddr *)&peer, &peer_len);
     if (client_socket < 0) {
         perror("accept");
         return -1;
     } else {
-        fprintf(stderr,
-            "New connection accepted from %s:%d\n",
+        // fprintf(stderr,
+        //     "New connection accepted from %s:%d\n",
             inet_ntoa(peer.sin_addr),
             ntohs(peer.sin_port));
         return client_socket;
@@ -129,4 +128,3 @@ int connect_to_server(int port, const char *hostname) {
 
     return soc;
 }
-

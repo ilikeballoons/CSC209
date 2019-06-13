@@ -40,12 +40,18 @@ int main(void) {
     // Read input from the user, send it to the server, and then accept the
     // echo that returns. Exit when stdin is closed.
     char buf[BUF_SIZE + 1];
+    int is_username_set = 0;
     while (1) {
+        if (is_username_set == 0) {
+          printf("Input username: \n");
+          is_username_set = 1;
+        }
         int num_read = read(STDIN_FILENO, buf, BUF_SIZE);
+        printf("%d\n", num_read);
         if (num_read == 0) {
             break;
         }
-        buf[num_read] = '\0';         
+        buf[num_read] = '\0';
 
         int num_written = write(sock_fd, buf, num_read);
         if (num_written != num_read) {

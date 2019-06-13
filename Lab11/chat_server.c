@@ -57,10 +57,26 @@ int accept_connection(int fd, struct sockname *usernames) {
 int read_from(int client_index, struct sockname *usernames) {
     int fd = usernames[client_index].sock_fd;
     char buf[BUF_SIZE + 1];
+    char user_buf[BUF_SIZE + 1];
 
     int num_read = read(fd, &buf, BUF_SIZE);
-    buf[num_read] = '\0';
-    if (num_read == 0 || write(fd, buf, strlen(buf)) != strlen(buf)) {
+    buf[num_read - 1] = '\0';
+    if (num_read > 0 && !usernames[client_index].username) { // new user
+      if((usernames[client_index].username = malloc(strlen(buf))) == NULL) {
+        perror("malloc on username");
+        exit(1);
+      }
+      strcpy(usernames[client_index].username, buf);
+      if(write(fd, buf, strlen(buf)) != strlen(buf)) {
+        usernames[client_index].sock_fd = -1;
+        return fd;
+      }
+      return 0;
+    }
+    strcpy(user_buf, usernames[client_index].username);
+    strcat(user_buf, ": ");
+    strcat(user_buf, buf);
+    if (num_read == 0 || write(fd, user_buf, strlen(user_buf)) != strlen(user_buf)) {
         usernames[client_index].sock_fd = -1;
         return fd;
     }
